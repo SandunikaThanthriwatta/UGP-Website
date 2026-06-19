@@ -5,6 +5,7 @@ import {
   getAllEvaluators,
   getUserDetails,
   userCreate,
+  getDashboardStats,
 } from "../controller/adminController.js";
 import {
   getOneProject,
@@ -37,6 +38,7 @@ router.get("/project/:id", getOneProject);
 router.get("/admin/evaluated-groups")
 router.get("/user-details/:id", getUserDetails);
 router.get("/all-evaluators", getAllEvaluators);
+router.get("/dashboard-stats", getDashboardStats);
 router.post("/new-evaluator", createEvaluator);
 
 router.post("/assign-evaluator", assignEvaluator);

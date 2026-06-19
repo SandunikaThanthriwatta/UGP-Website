@@ -222,10 +222,15 @@ export const getAllEvaluators = async (req, res, next) => {
   });
 };
 
-export const getEvaluationScores = async (req, res, next) => {
-  const year = req.params.id;
-
-  const projects = await Groups.find({ evaluationYear: year });
-  
-
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const [studentCount, evaluatorCount, projectCount] = await Promise.all([
+      Students.countDocuments(),
+      Evaluators.countDocuments(),
+      Groups.countDocuments(),
+    ]);
+    res.status(200).json({ studentCount, evaluatorCount, projectCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
