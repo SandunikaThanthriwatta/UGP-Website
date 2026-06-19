@@ -1,51 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-// node.js library that concatenates classes (strings)
-import classnames from "classnames";
-// javascipt plugin for creating charts
-import Chart from "chart.js";
-// react plugin used to create charts
-import { Line, Bar } from "react-chartjs-2";
-// reactstrap components
-import {
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-  NavItem,
-  NavLink,
-  Nav,
-  Progress,
-  Table,
-  Container,
-  Row,
-  Col,
-  Form,
-  FormGroup,
-  Input,
-  Label,
-  Modal,
-  FormText,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  InputGroup,
-  InputGroupAddon,
-  InputGroupText,
-  UncontrolledDropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownToggle,
-} from "reactstrap";
-
-// core components
-import {
-  chartOptions,
-  parseOptions,
-  chartExample1,
-  chartExample2,
-} from "variables/charts.js";
-
+import { Bar } from "react-chartjs-2";
 import Header from "components/Headers/Header.js";
 import { getAllProjects } from "store/actions/projectAction";
 import { Link } from "react-router-dom";
@@ -53,333 +8,254 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { serverUrl } from "utils/serveUrl";
 
-const Index = (props) => {
+const card = {
+  background: "#fff",
+  borderRadius: "12px",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+  overflow: "hidden",
+};
+
+const chartColors = {
+  proposal: "rgba(94,114,228,0.8)",
+  progress: "rgba(45,206,137,0.8)",
+  final: "rgba(251,99,64,0.8)",
+};
+
+const ChartCard = ({ title, data, color }) => (
+  <div style={{ ...card, padding: "1.25rem", marginBottom: "1.25rem" }}>
+    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#32325d", marginBottom: "1rem" }}>
+      {title}
+    </div>
+    <Bar
+      data={{
+        labels: data.labels,
+        datasets: [{
+          label: title,
+          data: data.values,
+          backgroundColor: color,
+          borderRadius: 6,
+          borderSkipped: false,
+        }],
+      }}
+      options={{
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: "#f0f0f0" } },
+          x: { grid: { display: false } },
+        },
+      }}
+    />
+  </div>
+);
+
+const ProjectCard = ({ p }) => (
+  <Link to={`/all/project/${p._id}`} style={{ textDecoration: "none" }}>
+    <div
+      style={{ ...card, padding: "1.25rem", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-3px)";
+        e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.07)";
+      }}
+    >
+      <div style={{ fontSize: "0.72rem", color: "#8898aa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
+        Group {p.groupId}
+      </div>
+      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#32325d", marginBottom: "0.75rem", lineHeight: 1.4 }}>
+        {p.projectName}
+      </div>
+      {p.projectImages && (
+        <img
+          src={p.projectImages}
+          alt={p.projectName}
+          style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "8px" }}
+        />
+      )}
+    </div>
+  </Link>
+);
+
+const Index = () => {
   const dispatch = useDispatch();
   const projects = useSelector((state) => state.project.projects);
   const user = useSelector((state) => state.user.userData);
-  const [activeNav, setActiveNav] = useState(1);
-  const [chartExample1Data, setChartExample1Data] = useState("data1");
-  const [searchYear, serSearchYear] = useState("2023");
-  const [year, setYear] = useState("");
+  const [searchYear, setSearchYear] = useState("2023");
   const [dispChart, setDispChart] = useState(false);
-  const [proposalMarks, setProposalMarks] = useState();
-  const [progressMarks, setProgressMarks] = useState();
-  const [finalMarks, setFinalMarks] = useState();
-  const [groupIds, setGroupIds] = useState();
-  const [finalize, setFinalized] = useState(false);
+  const [proposalMarks, setProposalMarks] = useState([]);
+  const [progressMarks, setProgressMarks] = useState([]);
+  const [finalMarks, setFinalMarks] = useState([]);
+  const [groupIds, setGroupIds] = useState([]);
+  const [finalized, setFinalized] = useState(false);
+  const [stats, setStats] = useState({ studentCount: 0, evaluatorCount: 0, projectCount: 0 });
 
-  if (window.Chart) {
-    parseOptions(Chart, chartOptions());
-  }
-
-  const data = {
-    labels: groupIds,
-    datasets: [
-      {
-        label: "proposalMarks",
-        data: proposalMarks,
-        fill: false,
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
-      },
-    ],
-  };
-
-  const data_2 = {
-    labels: groupIds,
-    datasets: [
-      {
-        label: "progressMarks",
-        data: progressMarks,
-        fill: false,
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
-      },
-    ],
-  };
-
-  const data_3 = {
-    labels: groupIds,
-    datasets: [
-      {
-        label: "finalMarks",
-        data: finalMarks,
-        fill: false,
-        borderColor: "rgb(75, 192, 192)",
-        tension: 0.1,
-      },
-    ],
-  };
-
-  const options = {
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
-
-  const toggleNavs = (e, index) => {
-    e.preventDefault();
-    setActiveNav(index);
-    setChartExample1Data("data" + index);
-  };
+  const isAdmin = user?.userType === 2;
+  const isHod = user?.userType === 3;
 
   const finalizeEvaluation = async () => {
     await toast.promise(
-      axios
-        .post(`${serverUrl}student/finalize-marks`, {
-          searchYear,
-        })
-        .then((response) => {
-          if (response.status === 200) {
-            window.location.reload();
-          }
-        })
-        .catch((error) => {
-          toast.error(error.response.data.message);
-        }),
-      {
-        pending: "Finalizing Evaluations",
-        success: "Finalized Evaluations",
-        error: "Evaluation Finalization Failed",
-      }
+      axios.post(`${serverUrl}student/finalize-marks`, { searchYear })
+        .then((res) => { if (res.status === 200) window.location.reload(); })
+        .catch((err) => { toast.error(err.response?.data?.message); }),
+      { pending: "Finalizing...", success: "Finalized!", error: "Failed" }
     );
   };
 
   const chartData = () => {
     setDispChart(true);
-    axios
-      .get(`${serverUrl}student/chart-marks/${searchYear}`)
-      .then((response) => {
-        if (response.status === 200) {
-          console.log(response.data);
-          setProgressMarks(response.data.progress_marks);
-          setProposalMarks(response.data.proposal_marks);
-          setFinalMarks(response.data.final_Mrks);
-          setGroupIds(response.data.groupIds);
+    axios.get(`${serverUrl}student/chart-marks/${searchYear}`)
+      .then((res) => {
+        if (res.status === 200) {
+          setProgressMarks(res.data.progress_marks);
+          setProposalMarks(res.data.proposal_marks);
+          setFinalMarks(res.data.final_Mrks);
+          setGroupIds(res.data.groupIds);
         }
       })
-      .catch((error) => {
-        console.error("Error uploading file:", error);
-      });
-  };
-  const searchYearhandler = () => {
-    dispatch(getAllProjects(searchYear));
+      .catch(console.error);
   };
 
   useEffect(() => {
-    // dispatch();
-    if (projects.length !== 0) {
-      if (projects[0].evaluationFinalized) {
-        chartData();
-        setFinalized(true);
-      }
+    if (isAdmin) {
+      axios.get(`${serverUrl}admin/dashboard-stats`)
+        .then((res) => setStats(res.data))
+        .catch(console.error);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (projects.length !== 0 && projects[0].evaluationFinalized) {
+      chartData();
+      setFinalized(true);
     }
   }, [projects]);
-  return (
-    <>
-      <Header />
-      {/* Page content */}
-      <Container className="mt--7" fluid>
-        <Row>
-          <Col xl="12">
-            <Card className="shadow">
-              <CardHeader className="bg-transparent">
-                {(user && user.userType === 2) ||
-                (user && user.userType === 3) ? (
-                  <>
-                    {" "}
-                    <Row className="align-items-center">
-                      <div className="col">
-                        <h6 className="text-uppercase text-muted ls-1 mb-1">
-                          Student Performance
-                        </h6>
-                        <h2 className="mb-4">
-                          {" "}
-                          FYP total projects In {searchYear} Academic Year{" "}
-                        </h2>
-                        <h3 className="mb-0">
-                          {" "}
-                          Total No of Projects -{projects.length}
-                        </h3>
-                        {user && user.userType === 2 && !finalize && (
-                          <Button
-                            color="primary"
-                            size="lg"
-                            onClick={finalizeEvaluation}
-                          >
-                            Finalize Evaluation in Year - {searchYear}
-                          </Button>
-                        )}
-                      </div>
-                      <Form className="navbar-search  form-inline mr-3 d-none d-md-flex ml-lg-auto">
-                        <FormGroup className="mb-0">
-                          <InputGroup className="input-group-alternative">
-                            <InputGroupAddon addonType="prepend">
-                              <InputGroupText>
-                                <i className="fas fa-search" />
-                              </InputGroupText>
-                            </InputGroupAddon>
-                            <Input
-                              id="search"
-                              name="search"
-                              placeholder="Search By Academic Year"
-                              onChange={(e) => {
-                                serSearchYear(e.target.value);
-                              }}
-                              type="text"
-                            />
-                          </InputGroup>
-                        </FormGroup>
-                      </Form>
-                      <Button
-                        className="bg-red text-white"
-                        onClick={searchYearhandler}
-                      >
-                        Submit
-                      </Button>
-                    </Row>
-                  </>
-                ) : (
-                  <>Welcome To the Final Year Project Evaluation Portal</>
-                )}
-              </CardHeader>
-              <CardBody>
-                {( user &&  user.userType === 2 || user && user.userType === 3) &&
-                  dispChart && (
-                    <>
-                      {projects && projects.length !== 0 && (
-                        <>
-                          <div className="chart">
-                            <h3>Proposal Marks</h3>
-                            <Bar data={data} options={options} />
-                          </div>
-                          <div className="chart">
-                            <h3>Progress Marks</h3>
-                            <Bar data={data_2} options={options} />
-                          </div>
-                          <div className="chart">
-                            <h3>Final Marks</h3>
-                            <Bar data={data_3} options={options} />
-                          </div>
-                        </>
-                      )}
-                    </>
-                  )}
-              </CardBody>
-            </Card>
-          </Col>
 
-          {projects &&
-            projects.length !== 0 &&
-            projects.map((p, index) => {
-              return (
-                <Col xl="4">
-                  <Link key={index} to={`/all/project/${p._id}`}>
-                    <Card className="shadow mt-4">
-                      <CardHeader className="bg-transparent">
-                        <Row className="align-items-center">
-                          <div className="col">
-                            <h6 className="text-uppercase text-muted ls-1 mb-1">
-                              Group No: {p.groupId}
-                            </h6>
-                            <h2 className="mb-0">{p.projectName}</h2>
-                          </div>
-                        </Row>
-                      </CardHeader>
-                      <CardBody className="align-items-center d-flex justify-center">
-                        <img
-                          src={p.projectImages}
-                          style={{ maxWidth: "200px" }}
-                        />
-                      </CardBody>
-                    </Card>
-                  </Link>
-                </Col>
-              );
-            })}
-        </Row>
-        {/* <Row className="mt-5">
-          <Col className="mb-5 mb-xl-0" xl="8">
-            <Card className="shadow">
-              <CardHeader className="border-0">
-                <Row className="align-items-center">
-                  <div className="col">
-                    <h3 className="mb-0">Page visits</h3>
-                  </div>
-                  <div className="col text-right">
-                    <Button
-                      color="primary"
-                      href="#pablo"
-                      onClick={(e) => e.preventDefault()}
-                      size="sm"
-                    >
-                      See all
-                    </Button>
-                  </div>
-                </Row>
-              </CardHeader>
-              <Table className="align-items-center table-flush" responsive>
-                <thead className="thead-light">
-                  <tr>
-                    <th scope="col">Page name</th>
-                    <th scope="col">Visitors</th>
-                    <th scope="col">Unique users</th>
-                    <th scope="col">Bounce rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">/argon/</th>
-                    <td>4,569</td>
-                    <td>340</td>
-                    <td>
-                      <i className="fas fa-arrow-up text-success mr-3" /> 46,53%
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">/argon/index.html</th>
-                    <td>3,985</td>
-                    <td>319</td>
-                    <td>
-                      <i className="fas fa-arrow-down text-warning mr-3" />{" "}
-                      46,53%
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">/argon/charts.html</th>
-                    <td>3,513</td>
-                    <td>294</td>
-                    <td>
-                      <i className="fas fa-arrow-down text-warning mr-3" />{" "}
-                      36,49%
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">/argon/tables.html</th>
-                    <td>2,050</td>
-                    <td>147</td>
-                    <td>
-                      <i className="fas fa-arrow-up text-success mr-3" /> 50,87%
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">/argon/profile.html</th>
-                    <td>1,795</td>
-                    <td>190</td>
-                    <td>
-                      <i className="fas fa-arrow-down text-danger mr-3" />{" "}
-                      46,53%
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
-            </Card>
-          </Col>
-        </Row> */}
-      </Container>
-    </>
+  const statCards = [
+    { label: "Total Students", value: stats.studentCount, icon: "ni ni-single-02", color: "#5e72e4" },
+    { label: "Total Evaluators", value: stats.evaluatorCount, icon: "ni ni-hat-3", color: "#2dce89" },
+    { label: "Total Projects", value: stats.projectCount, icon: "ni ni-collection", color: "#f5365c" },
+  ];
+
+  return (
+    <div>
+      {isAdmin && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem", marginBottom: "1.5rem" }}>
+          {statCards.map(({ label, value, icon, color }) => (
+            <div key={label} style={{ background: "#fff", borderRadius: "12px", padding: "1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "12px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <i className={icon} style={{ color, fontSize: "1.4rem" }} />
+              </div>
+              <div>
+                <div style={{ fontSize: "0.75rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
+                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#32325d", lineHeight: 1.2 }}>{value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <Header />
+
+      {/* Admin/HOD controls */}
+      {(isAdmin || isHod) && (
+        <div style={{ ...card, padding: "1.25rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "0.78rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Student Performance
+              </div>
+              <div style={{ fontWeight: 700, fontSize: "1.2rem", color: "#32325d", marginTop: "2px" }}>
+                FYP Projects — {searchYear} Academic Year
+              </div>
+              <div style={{ color: "#5e72e4", fontWeight: 600, marginTop: "4px" }}>
+                {projects.length} Projects Total
+              </div>
+              {isAdmin && !finalized && (
+                <button
+                  onClick={finalizeEvaluation}
+                  style={{
+                    marginTop: "10px",
+                    background: "#f5365c",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "8px 18px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Finalize Evaluation — {searchYear}
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                overflow: "hidden",
+                background: "#fff",
+              }}>
+                <span style={{ padding: "0 12px", color: "#8898aa" }}>
+                  <i className="fas fa-search" />
+                </span>
+                <input
+                  placeholder="Academic Year"
+                  value={searchYear}
+                  onChange={(e) => setSearchYear(e.target.value)}
+                  style={{ border: "none", outline: "none", padding: "8px 0", fontSize: "0.875rem", width: "140px" }}
+                />
+              </div>
+              <button
+                onClick={() => dispatch(getAllProjects(searchYear))}
+                style={{
+                  background: "#5e72e4",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+              >
+                Search
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
+      {(isAdmin || isHod) && dispChart && projects.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem", marginBottom: "1.5rem" }}>
+          <ChartCard title="Proposal Marks" data={{ labels: groupIds, values: proposalMarks }} color={chartColors.proposal} />
+          <ChartCard title="Progress Marks" data={{ labels: groupIds, values: progressMarks }} color={chartColors.progress} />
+          <ChartCard title="Final Marks" data={{ labels: groupIds, values: finalMarks }} color={chartColors.final} />
+        </div>
+      )}
+
+      {/* Welcome message for non-admin/hod */}
+      {!isAdmin && !isHod && (
+        <div style={{ ...card, padding: "2rem", marginBottom: "1.5rem", textAlign: "center" }}>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#32325d", marginBottom: "0.5rem" }}>
+            Welcome to FYP Console
+          </div>
+          <div style={{ color: "#8898aa" }}>Final Year Project Evaluation Portal</div>
+        </div>
+      )}
+
+      {/* Project cards grid */}
+      {projects.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.25rem" }}>
+          {projects.map((p, i) => <ProjectCard key={i} p={p} />)}
+        </div>
+      )}
+    </div>
   );
 };
 
