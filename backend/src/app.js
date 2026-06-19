@@ -9,6 +9,7 @@ import userRouter from "./api/router/user.js";
 import adminRouter from "./api/router/admin.js";
 import authRouter from "./api/router/auth.js";
 import studentRouter from "./api/router/groups.js";
+import uploadRouter from "./api/router/upload.js";
 import path, { dirname} from "path";
 import schema from "./graphql/schema.js";
 import { logIn } from "./graphql/resolver.js";
@@ -36,6 +37,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/admin", adminRouter);
 app.use("/auth", authRouter);
 app.use("/student", studentRouter);
+app.use("/", uploadRouter);
 
 app.use(
   "/graphql",
@@ -58,7 +60,7 @@ app.use(
 mongoose
   .connect(
     // `mongodb+srv://oshanranasinghe25:hSOrF3nBZ3rQe9WJ@cluster0.txj0vpo.mongodb.net/?retryWrites=true&w=majority`
-    'mongodb+srv://svenuranga:iamleVenu98%23@cluster0.n8pqomt.mongodb.net/UGP?retryWrites=true&w=majority'
+    'mongodb+srv://sthanthriwatta07_db_user:T3wZLxjqXFXeJtUo@cluster1.w3pyxlh.mongodb.net/ugp-portal?appName=Cluster1'
     ,
     {
       useNewUrlParser: true,

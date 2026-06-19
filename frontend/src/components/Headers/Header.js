@@ -3,19 +3,11 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import {
   Button,
-  Card,
-  CardHeader,
-  CardBody,
-  FormGroup,
-  CardTitle,
   Form,
+  FormGroup,
   Input,
-  Container,
-  Row,
-  Col,
   Label,
   Modal,
-  FormText,
   ModalHeader,
   ModalBody,
   ModalFooter,
@@ -24,9 +16,79 @@ import { createEvaluator } from "store/actions/evaluatorAction";
 import { toast } from "react-toastify";
 import { serverUrl } from "utils/serveUrl";
 
+const StatCard = ({ icon, label, color, onClick, buttonLabel }) => (
+  <div
+    style={{
+      background: "#fff",
+      borderRadius: "12px",
+      padding: "1.25rem 1.5rem",
+      display: "flex",
+      alignItems: "center",
+      gap: "1rem",
+      boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+      flex: "1 1 200px",
+      minWidth: "200px",
+    }}
+  >
+    <div
+      style={{
+        width: "48px",
+        height: "48px",
+        borderRadius: "10px",
+        background: color + "18",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <i className={icon} style={{ color, fontSize: "1.2rem" }} />
+    </div>
+    <div>
+      <div style={{ fontSize: "0.78rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        {label}
+      </div>
+      <button
+        onClick={onClick}
+        style={{
+          marginTop: "4px",
+          background: color,
+          color: "#fff",
+          border: "none",
+          borderRadius: "6px",
+          padding: "4px 14px",
+          fontSize: "0.8rem",
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  </div>
+);
+
+const inputStyle = {
+  border: "1px solid #e2e8f0",
+  borderRadius: "8px",
+  padding: "0.5rem 0.75rem",
+  fontSize: "0.875rem",
+  width: "100%",
+  outline: "none",
+  marginTop: "4px",
+};
+
+const labelStyle = {
+  fontSize: "0.8rem",
+  fontWeight: 600,
+  color: "#4a5568",
+  marginBottom: "2px",
+};
+
 const Header = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.userData);
+
   const [formData, setFormData] = useState({
     evaluatorId: "",
     evaluatorName: "",
@@ -34,333 +96,112 @@ const Header = () => {
     evaluatorEmail: "",
     evaluatorPassword: "",
   });
-
-  const [acYear, setAcYear] = useState();
-
+  const [acYear, setAcYear] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFile_1, setSelectedFile_1] = useState(null);
-
-  const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
-  };
-
-  const handleFileChange_1 = (event) => {
-    setSelectedFile_1(event.target.files[0]);
-  };
-
   const [modal, setModal] = useState(false);
-  const toggle = () => setModal(!modal);
-
   const [modal_1, setModal_1] = useState(false);
-  const toggle_1 = () => setModal_1(!modal_1);
 
-  const onSubmitBody = (e) => {
-    dispatch(createEvaluator(formData));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onSubmitFileBody = async (e) => {
-    if (selectedFile && selectedFile_1) {
-      if (acYear) {
-        const formData_1 = new FormData();
+  const onSubmitBody = () => dispatch(createEvaluator(formData));
 
-        formData_1.append("file1", selectedFile);
-        formData_1.append("file2", selectedFile_1);
+  const onSubmitFileBody = async () => {
+    if (!selectedFile || !selectedFile_1) return toast.error("CSV files are required");
+    if (!acYear) return toast.error("Academic Year is required");
 
-        toast.promise(
-          axios
-            .post(`${serverUrl}admin/user-register`, formData_1, {
-              headers: {
-                acaYear: acYear,
-              },
-            })
-            .then((response) => {
-              console.log(response.data.message);
-              window.location.reload();
-            })
-            .catch((error) => {
-              console.error("Error uploading file:", error);
-            }),
-          {
-            pending: "Creating Evaluation Year",
-            success: "Evaluation Year Complete",
-            error: "Evaluation Creation failed",
-          }
-        );
-      } else {
-        toast.error("Acadamic Year is required");
-      }
-    } else {
-      toast.error("CSV Files are required");
-    }
+    const fd = new FormData();
+    fd.append("file1", selectedFile);
+    fd.append("file2", selectedFile_1);
+
+    toast.promise(
+      axios.post(`${serverUrl}admin/user-register`, fd, { headers: { acaYear: acYear } })
+        .then(() => window.location.reload()),
+      { pending: "Creating Evaluation Year...", success: "Done!", error: "Failed" }
+    );
   };
 
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      [name]: value,
-    }));
-    console.log(formData);
-  };
+  if (!user || user.userType !== 2) return null;
 
   return (
     <>
-      <div className="header bg-gradient-info pb-8 pt-5 pt-md-8">
-        <Container fluid>
-          <div className="header-body">
-            {/* Card stats */}
-            {user && user.userType === 2 && (
-              <Row>
-                <Col lg="6" xl="3">
-                  <Card className="card-stats mb-4 mb-xl-0">
-                    <CardBody>
-                      <>
-                        {" "}
-                        <Row>
-                          <div className="col">
-                            <CardTitle
-                              tag="h5"
-                              className="text-uppercase text-muted mb-0"
-                            >
-                              Add Evaluator
-                            </CardTitle>
-                            <Button onClick={toggle} className="bg-red">
-                              {" "}
-                              <span className="h2 font-weight-bold mb-0 text-white">
-                                Add Evaluator
-                              </span>
-                            </Button>
-                          </div>
-                        </Row>
-                      </>
-                    </CardBody>
-                  </Card>
-                </Col>
-                <Col lg="6" xl="3">
-                  <Card className="card-stats mb-4 mb-xl-0">
-                    <CardBody>
-                      <Row>
-                        <div className="col">
-                          <CardTitle
-                            tag="h5"
-                            className="text-uppercase text-muted mb-0"
-                          >
-                            Add New Students
-                          </CardTitle>
-                          <Button className="bg-green" onClick={toggle_1}>
-                            {" "}
-                            <span className="h2 font-weight-bold mb-0 text-white">
-                              Add Students
-                            </span>
-                          </Button>
-                        </div>
-                      </Row>
-                    </CardBody>
-                    <Modal isOpen={modal} toggle={toggle} fullscreen>
-                      <ModalHeader toggle={toggle}>Modal title</ModalHeader>
-                      <ModalBody>
-                        <Form>
-                          <FormGroup>
-                            <Label for="projectId">Evaluator Id</Label>
-                            <Input
-                              id="evaluatorId"
-                              name="evaluatorId"
-                              onChange={handleChange}
-                              placeholder="Evaluator Id"
-                              type="text"
-                            />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label for="exampleprojectname">
-                              Evaluator Name
-                            </Label>
-                            <Input
-                              id="evaluatorName"
-                              name="evaluatorName"
-                              onChange={handleChange}
-                              // value={project.projectName}
-                              placeholder="Evaluator Name "
-                              type="projectname"
-                            />
-                          </FormGroup>
-
-                          <FormGroup>
-                            <Label for="exampleprojectname">
-                              Evaluator Password
-                            </Label>
-                            <Input
-                              id="evaluatorPassword"
-                              name="evaluatorPassword"
-                              onChange={handleChange}
-                              // value={project.projectName}
-                              placeholder="Evaluator Password "
-                              type="text"
-                            />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label for="exampleprojectname">
-                              Evaluator Email
-                            </Label>
-                            <Input
-                              id="evaluatorEmail"
-                              name="evaluatorEmail"
-                              onChange={handleChange}
-                              // value={project.projectName}
-                              placeholder="Evaluator Email "
-                              type="projectname"
-                            />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label for="exampleprojectname">
-                              Evaluator Department
-                            </Label>
-                            <Input
-                              id="department"
-                              name="department"
-                              onChange={handleChange}
-                              // value={project.projectName}
-                              placeholder="Evaluator's Separtrment "
-                              type="text"
-                            />
-                          </FormGroup>
-                          {/* <FormGroup>
-                          <Label for="exampleFile">File</Label>
-                          <Input id="exampleFile" name="file" type="file" />
-                          <FormText>
-                            This is some placeholder block-level help text for
-                            the above input. It‘s a bit lighter and easily wraps
-                            to a new line.
-                          </FormText>
-                        </FormGroup> */}
-                          <Button
-                            className="bg-red text-white"
-                            onClick={onSubmitBody}
-                          >
-                            Submit
-                          </Button>
-                        </Form>
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button color="primary" onClick={toggle}>
-                          Cancel
-                        </Button>
-                      </ModalFooter>
-                    </Modal>
-                    <Modal isOpen={modal_1} toggle={toggle_1} fullscreen>
-                      <ModalHeader toggle={toggle_1}>Modal title</ModalHeader>
-                      <ModalBody>
-                        <Form>
-                          <FormGroup>
-                            <Label for="projectId">Academic Year </Label>
-                            <Input
-                              id="year"
-                              name="year"
-                              onChange={(e) => {
-                                setAcYear(e.target.value);
-                              }}
-                              placeholder="20**"
-                              type="text"
-                            />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label for="exampleFile">
-                              Insert Student CSV file
-                            </Label>
-                            <Input
-                              id="exampleFile"
-                              name="file"
-                              onChange={handleFileChange}
-                              type="file"
-                            />
-                          </FormGroup>
-                          <FormGroup>
-                            <Label for="exampleFile">
-                              Insert Evaluation Criteria CSV file
-                            </Label>
-                            <Input
-                              id="exampleFile"
-                              name="file"
-                              onChange={handleFileChange_1}
-                              type="file"
-                            />
-                          </FormGroup>
-                          <Button
-                            className="bg-red text-white"
-                            onClick={onSubmitFileBody}
-                          >
-                            Submit
-                          </Button>
-                        </Form>
-                      </ModalBody>
-                      <ModalFooter>
-                        <Button color="primary" onClick={toggle_1}>
-                          Cancel
-                        </Button>
-                      </ModalFooter>
-                    </Modal>
-                  </Card>
-                </Col>
-                {/* <Col lg="6" xl="3">
-                <Card className="card-stats mb-4 mb-xl-0">
-                  <CardBody>
-                    <Row>
-                      <div className="col">
-                        <CardTitle
-                          tag="h5"
-                          className="text-uppercase text-muted mb-0"
-                        >
-                          Sales
-                        </CardTitle>
-                        <span className="h2 font-weight-bold mb-0">924</span>
-                      </div>
-                      <Col className="col-auto">
-                        <div className="icon icon-shape bg-yellow text-white rounded-circle shadow">
-                          <i className="fas fa-users" />
-                        </div>
-                      </Col>
-                    </Row>
-                    <p className="mt-3 mb-0 text-muted text-sm">
-                      <span className="text-warning mr-2">
-                        <i className="fas fa-arrow-down" /> 1.10%
-                      </span>{" "}
-                      <span className="text-nowrap">Since yesterday</span>
-                    </p>
-                  </CardBody>
-                </Card>
-              </Col>
-              <Col lg="6" xl="3">
-                <Card className="card-stats mb-4 mb-xl-0">
-                  <CardBody>
-                    <Row>
-                      <div className="col">
-                        <CardTitle
-                          tag="h5"
-                          className="text-uppercase text-muted mb-0"
-                        >
-                          Performance
-                        </CardTitle>
-                        <span className="h2 font-weight-bold mb-0">49,65%</span>
-                      </div>
-                      <Col className="col-auto">
-                        <div className="icon icon-shape bg-info text-white rounded-circle shadow">
-                          <i className="fas fa-percent" />
-                        </div>
-                      </Col>
-                    </Row>
-                    <p className="mt-3 mb-0 text-muted text-sm">
-                      <span className="text-success mr-2">
-                        <i className="fas fa-arrow-up" /> 12%
-                      </span>{" "}
-                      <span className="text-nowrap">Since last month</span>
-                    </p>
-                  </CardBody>
-                </Card>
-              </Col> */}
-              </Row>
-            )}
-          </div>
-        </Container>
+      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        <StatCard
+          icon="ni ni-hat-3"
+          label="Evaluators"
+          color="#5e72e4"
+          onClick={() => setModal(true)}
+          buttonLabel="Add Evaluator"
+        />
+        <StatCard
+          icon="ni ni-single-02"
+          label="Students"
+          color="#2dce89"
+          onClick={() => setModal_1(true)}
+          buttonLabel="Add Students"
+        />
       </div>
+
+      {/* Add Evaluator Modal */}
+      <Modal isOpen={modal} toggle={() => setModal(false)} centered>
+        <ModalHeader toggle={() => setModal(false)} style={{ borderBottom: "1px solid #e2e8f0", fontWeight: 700 }}>
+          Add Evaluator
+        </ModalHeader>
+        <ModalBody style={{ padding: "1.5rem" }}>
+          <Form>
+            {[
+              { id: "evaluatorId", label: "Evaluator ID", placeholder: "E001" },
+              { id: "evaluatorName", label: "Full Name", placeholder: "Dr. Smith" },
+              { id: "evaluatorPassword", label: "Password", placeholder: "••••••••" },
+              { id: "evaluatorEmail", label: "Email", placeholder: "smith@ruh.ac.lk" },
+              { id: "department", label: "Department", placeholder: "Computer Science" },
+            ].map(({ id, label, placeholder }) => (
+              <FormGroup key={id} style={{ marginBottom: "1rem" }}>
+                <Label style={labelStyle}>{label}</Label>
+                <Input id={id} name={id} placeholder={placeholder} onChange={handleChange} style={inputStyle} />
+              </FormGroup>
+            ))}
+          </Form>
+        </ModalBody>
+        <ModalFooter style={{ borderTop: "1px solid #e2e8f0", gap: "8px" }}>
+          <Button color="secondary" outline onClick={() => setModal(false)}>Cancel</Button>
+          <Button style={{ background: "#5e72e4", border: "none", borderRadius: "8px" }} onClick={onSubmitBody}>
+            Add Evaluator
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Add Students Modal */}
+      <Modal isOpen={modal_1} toggle={() => setModal_1(false)} centered>
+        <ModalHeader toggle={() => setModal_1(false)} style={{ borderBottom: "1px solid #e2e8f0", fontWeight: 700 }}>
+          Upload Student Data
+        </ModalHeader>
+        <ModalBody style={{ padding: "1.5rem" }}>
+          <Form>
+            <FormGroup style={{ marginBottom: "1rem" }}>
+              <Label style={labelStyle}>Academic Year</Label>
+              <Input placeholder="e.g. 2024" onChange={(e) => setAcYear(e.target.value)} style={inputStyle} />
+            </FormGroup>
+            <FormGroup style={{ marginBottom: "1rem" }}>
+              <Label style={labelStyle}>Student CSV File</Label>
+              <Input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} style={inputStyle} />
+            </FormGroup>
+            <FormGroup>
+              <Label style={labelStyle}>Evaluation Criteria CSV File</Label>
+              <Input type="file" onChange={(e) => setSelectedFile_1(e.target.files[0])} style={inputStyle} />
+            </FormGroup>
+          </Form>
+        </ModalBody>
+        <ModalFooter style={{ borderTop: "1px solid #e2e8f0", gap: "8px" }}>
+          <Button color="secondary" outline onClick={() => setModal_1(false)}>Cancel</Button>
+          <Button style={{ background: "#2dce89", border: "none", borderRadius: "8px" }} onClick={onSubmitFileBody}>
+            Upload & Create
+          </Button>
+        </ModalFooter>
+      </Modal>
     </>
   );
 };

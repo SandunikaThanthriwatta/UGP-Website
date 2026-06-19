@@ -4,7 +4,6 @@ import { useDispatch } from "react-redux";
 import {
   Button,
   Card,
-  CardHeader,
   CardBody,
   FormGroup,
   Form,
@@ -12,8 +11,6 @@ import {
   InputGroupAddon,
   InputGroupText,
   InputGroup,
-  Row,
-  Col,
 } from "reactstrap";
 
 const Login = () => {
@@ -39,10 +36,9 @@ const Login = () => {
 
   return (
     <>
-      <Col lg="5" md="7">
-        <Card className="bg-secondary shadow border-0">
+      <Card className="bg-secondary shadow border-0" style={{ width: "100%" }}>
           <CardBody className="px-lg-5 py-lg-5">
-            <h1 className="text-black text-center">Welcome To FYP Console!</h1>
+            <h1 className="text-black text-center">Welcome Back!</h1>
             <div className="text-center text-muted mb-4">
               <small>Sign in with credentials</small>
             </div>
@@ -100,18 +96,6 @@ const Login = () => {
             </Form>
           </CardBody>
         </Card>
-        <Row className="mt-3">
-          {/* <Col xs="6">
-            <a
-              className="text-light"
-              href="#pablo"
-              onClick={(e) => e.preventDefault()}
-            >
-              <small>Forgot password?</small>
-            </a>
-          </Col> */}
-        </Row>
-      </Col>
     </>
   );
 };

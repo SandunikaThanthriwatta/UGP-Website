@@ -10,9 +10,8 @@ import {
   getProjectByStudent,
 } from "../../store/actions/projectAction";
 
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-
-import storage from "../../firebase/config";
+import axios from "axios";
+import { serverUrl } from "utils/serveUrl";
 
 import {
   Button,
@@ -62,22 +61,16 @@ const MyProject = () => {
     dispatch(updateProject(data));
   };
 
-  const onSubmitForm = (event) => {
+  const onSubmitForm = async (event) => {
+    event.preventDefault();
     if (selectedFile) {
-      console.log(storage);
-      const imageRef = ref(storage, `images/${selectedFile.name}`);
-      uploadBytes(imageRef, selectedFile).then((snapshot) => {
-        getDownloadURL(snapshot.ref).then((url) => {
-          setImageUrl((prev) => [...prev, url]);
-          setImgDetect(false);
-        });
-      });
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const response = await axios.post(`${serverUrl}upload`, formData);
+      setImageUrl(response.data.url);
     } else {
       onSubmitBody();
     }
-
-    console.log(imageUrl);
-    event.preventDefault();
   };
 
   const handleFileChange = (event) => {

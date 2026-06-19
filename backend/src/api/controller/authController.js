@@ -7,7 +7,9 @@ export const userLogin = async (req, res, next) => {
   try {
     const { userId, password } = req.body;
 
+    console.log("Login attempt:", userId, password);
     const user = await Users.findOne({ userId: userId });
+    console.log("User found:", user);
     if (!user) throw new Error("Invalid username Or password");
     if (user.password !== password)
       throw new Error("Invalid username Or password");
