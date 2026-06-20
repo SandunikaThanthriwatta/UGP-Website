@@ -49,9 +49,11 @@ const AllEvaluators = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const onSubmit = () => {
-    dispatch(createEvaluator(formData));
+  const onSubmit = async () => {
+    await dispatch(createEvaluator(formData));
+    dispatch(getAllEvaluators());
     setModal(false);
+    setFormData({ evaluatorId: "", evaluatorName: "", department: "", evaluatorEmail: "", evaluatorPassword: "" });
   };
 
   return (

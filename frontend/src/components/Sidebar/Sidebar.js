@@ -1,12 +1,10 @@
-import { useState } from "react";
 import { useSelector } from "react-redux";
-import { NavLink as NavLinkRRD, Link, useLocation } from "react-router-dom";
+import { NavLink as NavLinkRRD, useLocation } from "react-router-dom";
 import { PropTypes } from "prop-types";
 
 const SIDEBAR_BG = "#1a2035";
-const ACCENT = "#5e72e4";
 const TEXT_MUTED = "rgba(255,255,255,0.5)";
-const TEXT_ACTIVE = "#fff";
+const TEXT_ACTIVE = "#a0aff5";
 
 const styles = {
   sidebar: {
@@ -71,7 +69,7 @@ const styles = {
     borderRadius: "8px",
     marginBottom: "2px",
     color: active ? TEXT_ACTIVE : TEXT_MUTED,
-    backgroundColor: active ? ACCENT : "transparent",
+    backgroundColor: active ? "rgba(94,114,228,0.18)" : "transparent",
     textDecoration: "none",
     fontSize: "0.875rem",
     fontWeight: active ? 600 : 400,
@@ -123,7 +121,7 @@ const Sidebar = (props) => {
           }}
         >
           <span style={styles.navIcon}>
-            <i className={prop.icon} style={{ color: "inherit" }} />
+            <i className={prop.icon.replace(/text-\S+/, "")} style={{ color: "inherit" }} />
           </span>
           {prop.name}
         </NavLinkRRD>

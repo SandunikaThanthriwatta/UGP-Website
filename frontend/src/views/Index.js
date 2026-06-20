@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Bar } from "react-chartjs-2";
-import Header from "components/Headers/Header.js";
 import { getAllProjects } from "store/actions/projectAction";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -82,7 +81,8 @@ const Index = () => {
   const dispatch = useDispatch();
   const projects = useSelector((state) => state.project.projects);
   const user = useSelector((state) => state.user.userData);
-  const [searchYear, setSearchYear] = useState("2023");
+  const currentYear = new Date().getFullYear().toString();
+  const [searchYear, setSearchYear] = useState(currentYear);
   const [dispChart, setDispChart] = useState(false);
   const [proposalMarks, setProposalMarks] = useState([]);
   const [progressMarks, setProgressMarks] = useState([]);
@@ -90,6 +90,7 @@ const Index = () => {
   const [groupIds, setGroupIds] = useState([]);
   const [finalized, setFinalized] = useState(false);
   const [stats, setStats] = useState({ studentCount: 0, evaluatorCount: 0, projectCount: 0 });
+  const [trends, setTrends] = useState([]);
 
   const isAdmin = user?.userType === 2;
   const isHod = user?.userType === 3;
@@ -119,8 +120,12 @@ const Index = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      axios.get(`${serverUrl}admin/dashboard-stats`)
+      dispatch(getAllProjects(currentYear));
+      axios.get(`${serverUrl}admin/dashboard-stats?year=${currentYear}`)
         .then((res) => setStats(res.data))
+        .catch(console.error);
+      axios.get(`${serverUrl}admin/yearly-trends`)
+        .then((res) => setTrends(res.data.trends))
         .catch(console.error);
     }
   }, [isAdmin]);
@@ -132,110 +137,162 @@ const Index = () => {
     }
   }, [projects]);
 
+  const last4 = trends.slice(-4);
+
   const statCards = [
-    { label: "Total Students", value: stats.studentCount, icon: "ni ni-single-02", color: "#5e72e4" },
-    { label: "Total Evaluators", value: stats.evaluatorCount, icon: "ni ni-hat-3", color: "#2dce89" },
-    { label: "Total Projects", value: stats.projectCount, icon: "ni ni-collection", color: "#f5365c" },
+    { label: "Total Students", value: stats.studentCount, icon: "ni ni-single-02", color: "#5e72e4", dataKey: "studentCount" },
+    { label: "Total Evaluators", value: stats.evaluatorCount, icon: "ni ni-hat-3", color: "#2dce89", dataKey: "evaluatorCount" },
+    { label: "Total Projects", value: stats.projectCount, icon: "ni ni-folder-17", color: "#f5365c", dataKey: "projectCount" },
   ];
+
+  const prevYearStats = trends.length >= 2 ? trends[trends.length - 2] : null;
+  const change = (current, dataKey) => {
+    if (!prevYearStats || !prevYearStats[dataKey]) return null;
+    const diff = current - prevYearStats[dataKey];
+    const pct = Math.round((diff / prevYearStats[dataKey]) * 100);
+    return { diff, pct };
+  };
 
   return (
     <div>
       {isAdmin && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.25rem", marginBottom: "1.5rem" }}>
-          {statCards.map(({ label, value, icon, color }) => (
-            <div key={label} style={{ background: "#fff", borderRadius: "12px", padding: "1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", display: "flex", alignItems: "center", gap: "1.25rem" }}>
-              <div style={{ width: "56px", height: "56px", borderRadius: "12px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <i className={icon} style={{ color, fontSize: "1.4rem" }} />
+          {statCards.map(({ label, value, icon, color, dataKey }) => {
+            const delta = change(value, dataKey);
+            return (
+              <div key={label} style={{ background: "#fff", borderRadius: "12px", padding: "1.25rem 1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
+                {/* Top row */}
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1rem" }}>
+                  <div>
+                    <div style={{ fontSize: "0.72rem", color: "#8898aa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+                    <div style={{ fontSize: "2rem", fontWeight: 700, color: "#32325d", lineHeight: 1.2, marginTop: "4px" }}>{value}</div>
+                    {delta && (
+                      <div style={{ marginTop: "4px", fontSize: "0.78rem", fontWeight: 600, color: delta.diff >= 0 ? "#2dce89" : "#f5365c" }}>
+                        {delta.diff >= 0 ? "▲" : "▼"} {Math.abs(delta.pct)}% vs last year
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <i className={icon} style={{ color, fontSize: "1.2rem" }} />
+                  </div>
+                </div>
+                {/* Sparkline */}
+                {last4.length > 0 && (() => {
+                  const vals = last4.map((t) => t[dataKey] || 0);
+                  const max = Math.max(...vals, 1);
+                  const W = 260, H = 56, gap = 6;
+                  const barW = (W - gap * (vals.length - 1)) / vals.length;
+                  return (
+                    <div style={{ marginTop: "0.75rem" }}>
+                      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
+                        {vals.map((v, i) => {
+                          const bh = Math.max((v / max) * H, 4);
+                          const x = i * (barW + gap);
+                          const y = H - bh;
+                          return (
+                            <rect key={i} x={x} y={y} width={barW} height={bh} rx="3" fill={color} fillOpacity="0.85">
+                              <title>{`${last4[i].year}: ${v}`}</title>
+                            </rect>
+                          );
+                        })}
+                      </svg>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+                        {last4.map((t) => (
+                          <span key={t.year} style={{ fontSize: "0.65rem", color: "#8898aa" }}>{t.year}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-              <div>
-                <div style={{ fontSize: "0.75rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
-                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#32325d", lineHeight: 1.2 }}>{value}</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
-      <Header />
 
-      {/* Admin/HOD controls */}
+      {/* Student Performance Section */}
       {(isAdmin || isHod) && (
-        <div style={{ ...card, padding: "1.25rem", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "0.78rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Student Performance
-              </div>
-              <div style={{ fontWeight: 700, fontSize: "1.2rem", color: "#32325d", marginTop: "2px" }}>
-                FYP Projects — {searchYear} Academic Year
-              </div>
-              <div style={{ color: "#5e72e4", fontWeight: 600, marginTop: "4px" }}>
-                {projects.length} Projects Total
-              </div>
-              {isAdmin && !finalized && (
-                <button
-                  onClick={finalizeEvaluation}
-                  style={{
-                    marginTop: "10px",
-                    background: "#f5365c",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px 18px",
-                    fontWeight: 600,
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Finalize Evaluation — {searchYear}
-                </button>
-              )}
-            </div>
+        <div style={{ ...card, marginBottom: "1.5rem" }}>
 
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid #e2e8f0",
-                borderRadius: "8px",
-                overflow: "hidden",
-                background: "#fff",
-              }}>
-                <span style={{ padding: "0 12px", color: "#8898aa" }}>
-                  <i className="fas fa-search" />
-                </span>
-                <input
-                  placeholder="Academic Year"
-                  value={searchYear}
-                  onChange={(e) => setSearchYear(e.target.value)}
-                  style={{ border: "none", outline: "none", padding: "8px 0", fontSize: "0.875rem", width: "140px" }}
-                />
-              </div>
-              <button
-                onClick={() => dispatch(getAllProjects(searchYear))}
-                style={{
-                  background: "#5e72e4",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "8px 16px",
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
+          {/* Section header */}
+          <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
+            <div>
+              <div style={{ fontSize: "0.72rem", color: "#8898aa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>Overview</div>
+              <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "#32325d", marginTop: "2px" }}>Student Performance</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", background: "#f8f9fa" }}>
+              <span style={{ padding: "0 12px", color: "#8898aa", fontSize: "0.8rem" }}>
+                <i className="fas fa-calendar-alt" />
+              </span>
+              <input
+                placeholder="Search academic year"
+                value={searchYear}
+                onChange={(e) => {
+                  const y = e.target.value;
+                  setSearchYear(y);
+                  dispatch(getAllProjects(y));
+                  if (y.length === 4) {
+                    axios.get(`${serverUrl}admin/dashboard-stats?year=${y}`)
+                      .then((res) => setStats(res.data))
+                      .catch(console.error);
+                  }
                 }}
-              >
-                Search
-              </button>
+                style={{ border: "none", outline: "none", background: "transparent", padding: "8px 12px 8px 0", fontSize: "0.875rem", width: "220px", color: "#32325d" }}
+              />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Charts */}
-      {(isAdmin || isHod) && dispChart && projects.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem", marginBottom: "1.5rem" }}>
-          <ChartCard title="Proposal Marks" data={{ labels: groupIds, values: proposalMarks }} color={chartColors.proposal} />
-          <ChartCard title="Progress Marks" data={{ labels: groupIds, values: progressMarks }} color={chartColors.progress} />
-          <ChartCard title="Final Marks" data={{ labels: groupIds, values: finalMarks }} color={chartColors.final} />
+          {/* Summary row */}
+          <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #f0f0f0" }}>
+            {[
+              { label: "Academic Year", value: searchYear || "—", icon: "ni ni-calendar-grid-58", color: "#5e72e4" },
+              { label: "Total Projects", value: projects.length, icon: "ni ni-folder-17", color: "#f5365c" },
+              { label: "Status", value: finalized ? "Finalized" : "In Progress", icon: "ni ni-check-bold", color: finalized ? "#2dce89" : "#fb6340" },
+            ].map(({ label, value, icon, color }, i, arr) => (
+              <div key={label} style={{ flex: 1, padding: "1.25rem 1.5rem", borderRight: i < arr.length - 1 ? "1px solid #f0f0f0" : "none", display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <i className={icon} style={{ color, fontSize: "1rem" }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.72rem", color: "#8898aa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
+                  <div style={{ fontWeight: 700, fontSize: "1rem", color: "#32325d" }}>{value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Finalize button */}
+          {isAdmin && projects.length > 0 && !finalized && (
+            <div style={{ padding: "1rem 1.5rem", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: "0.85rem", color: "#8898aa" }}>All evaluations must be completed before finalizing.</div>
+              <button
+                onClick={finalizeEvaluation}
+                style={{ background: "#f5365c", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
+              >
+                Finalize Evaluation
+              </button>
+            </div>
+          )}
+
+          {/* Charts */}
+          {dispChart && projects.length > 0 && (
+            <div style={{ padding: "1.25rem 1.5rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
+                <ChartCard title="Proposal Marks" data={{ labels: groupIds, values: proposalMarks }} color={chartColors.proposal} />
+                <ChartCard title="Progress Marks" data={{ labels: groupIds, values: progressMarks }} color={chartColors.progress} />
+                <ChartCard title="Final Marks" data={{ labels: groupIds, values: finalMarks }} color={chartColors.final} />
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {projects.length === 0 && (
+            <div style={{ padding: "2.5rem", textAlign: "center", color: "#8898aa" }}>
+              <i className="ni ni-folder-17" style={{ fontSize: "2rem", marginBottom: "0.75rem", display: "block", opacity: 0.4 }} />
+              <div style={{ fontWeight: 600 }}>No projects found</div>
+              <div style={{ fontSize: "0.85rem", marginTop: "4px" }}>Enter an academic year above to load data</div>
+            </div>
+          )}
         </div>
       )}
 

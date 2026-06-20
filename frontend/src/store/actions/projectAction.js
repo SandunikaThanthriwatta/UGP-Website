@@ -17,14 +17,7 @@ export const getAllProjects = (year) => {
       })
     );
     const sendRequest = async () => {
-      const response = await toast.promise(
-        axios.get(`${serverUrl}admin/all-projects/${year}`, {}),
-        {
-          pending: "Searching",
-          success: "Search Finished",
-          error: "Search Failed",
-        }
-      );
+      const response = await axios.get(`${serverUrl}admin/all-projects/${year}`, {});
       console.log(response);
       if (response.status != 200) {
         throw new Error("User Login failed");
@@ -119,18 +112,9 @@ export const getProjectByEvaluator = (id, year) => {
       })
     );
     const sendRequest = async () => {
-      const response = await toast.promise(
-        axios.get(`${serverUrl}student/evaluator-projects/${id}`, {
-          headers: {
-            acadamicYear: year,
-          },
-        }),
-        {
-          pending: "Searching",
-          success: "Search Finished",
-          error: "Search Failed",
-        }
-      );
+      const response = await axios.get(`${serverUrl}student/evaluator-projects/${id}`, {
+        headers: { acadamicYear: year },
+      });
       console.log(response);
       if (response.status != 200) {
         throw new Error("User Login failed");

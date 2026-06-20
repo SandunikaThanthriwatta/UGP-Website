@@ -16,7 +16,7 @@ var routes = [
   {
     path: "/index",
     name: "Dashboard",
-    icon: "ni ni-tv-2 text-primary",
+    icon: "ni ni-tv-2 text-info",
     component: <Index />,
     layout: "/admin",
   },
@@ -50,7 +50,7 @@ var routes = [
   {
     path: "/all-projects",
     name: "allProjects",
-    icon: "ni ni ni-folder-17 text-primary",
+    icon: "ni ni-folder-17 text-info",
     component: <AllProjects />,
     layout: "/admin",
   },
@@ -58,7 +58,7 @@ var routes = [
   {
     path: "/all-projects",
     name: "allProjects",
-    icon: "ni ni ni-folder-17 text-primary",
+    icon: "ni ni-folder-17 text-info",
     component: <AllProjects />,
     layout: "/hod",
   },

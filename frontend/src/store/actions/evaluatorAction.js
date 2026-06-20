@@ -58,51 +58,11 @@ export const getAllEvaluators = () => {
 
 export const createEvaluator = (userData) => {
   return async (dispatch) => {
-    dispatch(
-      notificationSlice.actions.showNotification({
-        status: "pending",
-        title: "Sending...",
-        message: "Sending userData",
-      })
-    );
-    const sendRequest = async () => {
-      const response = await axios.post(
-        `${serverUrl}admin/new-evaluator`,
-        {
-          userData,
-        }
-      );
-      console.log(response);
-      if (response.status != 200) {
-        throw new Error("User Login failed");
-      }
-      console.log(response.data);
-      return response.data;
-    };
     try {
-      const userResponse = await sendRequest();
-
-      dispatch(evaluatorSlice.actions.getAllEvaluators(userResponse));
-      //   dispatch(userSlice.actions.userDetails(userResponse.userData));
-      //   dispatch(
-      //     userSlice.actions.updateUserType(userResponse.userData.userType)
-      //   );
-      dispatch(
-        notificationSlice.actions.showNotification({
-          status: "success",
-          title: "Success!",
-          message: "New Evaluator Added",
-        })
-      );
+      await axios.post(`${serverUrl}admin/new-evaluator`, { userData });
+      await dispatch(getAllEvaluators());
     } catch (err) {
       console.log(err);
-      dispatch(
-        notificationSlice.actions.showNotification({
-          status: "error",
-          title: "Error...",
-          message: "New Evaluator creatrion failed",
-        })
-      );
     }
   };
 };

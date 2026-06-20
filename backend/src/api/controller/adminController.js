@@ -224,12 +224,47 @@ export const getAllEvaluators = async (req, res, next) => {
 
 export const getDashboardStats = async (req, res, next) => {
   try {
+    const year = req.query.year;
+    if (year) {
+      const groups = await Groups.find({ evaluationYear: year });
+      const projectCount = groups.length;
+      const studentCount = groups.reduce((sum, g) => sum + (g.groupMembers?.length || 0), 0);
+      const evaluatorIds = [...new Set(groups.flatMap((g) => g.evaluator.map((e) => e.toString())))];
+      const evaluatorCount = evaluatorIds.length;
+      return res.status(200).json({ studentCount, evaluatorCount, projectCount });
+    }
     const [studentCount, evaluatorCount, projectCount] = await Promise.all([
       Students.countDocuments(),
       Evaluators.countDocuments(),
       Groups.countDocuments(),
     ]);
     res.status(200).json({ studentCount, evaluatorCount, projectCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getYearlyTrends = async (req, res, next) => {
+  try {
+    const allGroups = await Groups.find({}, { evaluationYear: 1, groupMembers: 1, evaluator: 1 });
+    const yearMap = {};
+    allGroups.forEach((g) => {
+      const y = g.evaluationYear;
+      if (!y) return;
+      if (!yearMap[y]) yearMap[y] = { projectCount: 0, studentCount: 0, evaluatorIds: new Set() };
+      yearMap[y].projectCount++;
+      yearMap[y].studentCount += g.groupMembers?.length || 0;
+      g.evaluator?.forEach((e) => yearMap[y].evaluatorIds.add(e.toString()));
+    });
+    const trends = Object.entries(yearMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([year, data]) => ({
+        year,
+        projectCount: data.projectCount,
+        studentCount: data.studentCount,
+        evaluatorCount: data.evaluatorIds.size,
+      }));
+    res.status(200).json({ trends });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
