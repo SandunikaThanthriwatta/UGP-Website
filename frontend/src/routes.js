@@ -6,6 +6,7 @@ import Evaluators from "views/examples/Evaluators";
 import Tables from "views/examples/Tables.js";
 import Icons from "views/examples/Icons.js";
 import AllProjects from "views/examples/AllProjects";
+import Students from "views/examples/Students";
 import MyProject from "views/examples/MyProject";
 import Final from "views/examples/Final";
 import Progress from "views/examples/Progress";
@@ -48,8 +49,15 @@ var routes = [
     layout: "/evaluator",
   },
   {
+    path: "/students",
+    name: "Students",
+    icon: "ni ni-single-02 text-info",
+    component: <Students />,
+    layout: "/admin",
+  },
+  {
     path: "/all-projects",
-    name: "allProjects",
+    name: "All Projects",
     icon: "ni ni-folder-17 text-info",
     component: <AllProjects />,
     layout: "/admin",
@@ -57,7 +65,7 @@ var routes = [
 
   {
     path: "/all-projects",
-    name: "allProjects",
+    name: "Projects",
     icon: "ni ni-folder-17 text-info",
     component: <AllProjects />,
     layout: "/hod",

@@ -222,6 +222,26 @@ export const getAllEvaluators = async (req, res, next) => {
   });
 };
 
+export const getAllStudents = async (req, res, next) => {
+  try {
+    const year = req.query.year;
+    const query = year ? { evaluationYear: year } : {};
+    const groups = await Groups.find(query, { groupId: 1, projectName: 1, evaluationYear: 1, groupMembers: 1 });
+    const students = groups.flatMap((g) =>
+      (g.groupMembers || []).map((m) => ({
+        studentId: m.studentId || m.regNo,
+        studentName: m.name,
+        groupId: g.groupId,
+        projectName: g.projectName,
+        evaluationYear: g.evaluationYear,
+      }))
+    );
+    res.status(200).json({ students });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const getDashboardStats = async (req, res, next) => {
   try {
     const year = req.query.year;

@@ -1,11 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import axios from "axios";
-import { toast } from "react-toastify";
 import { getAllProjects } from "store/actions/projectAction";
 import { getAllEvaluators, assignEvaluator } from "store/actions/evaluatorAction";
-import { serverUrl } from "utils/serveUrl";
 
 const card = {
   background: "#fff",
@@ -22,38 +19,6 @@ const AllProjects = () => {
   const [searchYear, setSearchYear] = useState("");
   const [assignModal, setAssignModal] = useState({ open: false, groupId: "", projectName: "" });
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState("");
-
-  const [uploadModal, setUploadModal] = useState(false);
-  const [uploadYear, setUploadYear] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const file1Ref = useRef(null);
-  const file2Ref = useRef(null);
-
-  const handleUpload = async () => {
-    if (!uploadYear || !file1Ref.current?.files[0] || !file2Ref.current?.files[0]) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    const formData = new FormData();
-    formData.append("file1", file1Ref.current.files[0]);
-    formData.append("file2", file2Ref.current.files[0]);
-    setUploading(true);
-    try {
-      await axios.post(`${serverUrl}admin/user-register`, formData, {
-        headers: { acaYear: uploadYear, "Content-Type": "multipart/form-data" },
-      });
-      toast.success("Students uploaded successfully!");
-      setUploadModal(false);
-      setUploadYear("");
-      file1Ref.current.value = "";
-      file2Ref.current.value = "";
-      dispatch(getAllProjects(uploadYear));
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const searchYearhandler = () => dispatch(getAllProjects(searchYear));
 
@@ -75,57 +40,11 @@ const AllProjects = () => {
 
   return (
     <div>
-      {/* Upload Students Modal */}
-      {uploadModal && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} onClick={() => setUploadModal(false)} />
-          <div style={{ position: "relative", background: "#fff", borderRadius: "12px", padding: "2rem", width: "100%", maxWidth: "440px", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
-              <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "#32325d" }}>Upload Students</div>
-              <button onClick={() => setUploadModal(false)} style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#8898aa" }}>✕</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#525f7f", display: "block", marginBottom: "4px" }}>Academic Year</label>
-                <input
-                  placeholder="e.g. 2025"
-                  value={uploadYear}
-                  onChange={(e) => setUploadYear(e.target.value)}
-                  style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 12px", fontSize: "0.875rem", outline: "none" }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#525f7f", display: "block", marginBottom: "4px" }}>Students CSV</label>
-                <input ref={file1Ref} type="file" accept=".csv" style={{ width: "100%", fontSize: "0.875rem" }} />
-              </div>
-              <div>
-                <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#525f7f", display: "block", marginBottom: "4px" }}>Evaluation Criteria CSV</label>
-                <input ref={file2Ref} type="file" accept=".csv" style={{ width: "100%", fontSize: "0.875rem" }} />
-              </div>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "1.5rem" }}>
-              <button onClick={() => setUploadModal(false)} style={{ background: "#f4f6f9", color: "#525f7f", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}>
-                Cancel
-              </button>
-              <button onClick={handleUpload} disabled={uploading} style={{ background: "#5e72e4", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", opacity: uploading ? 0.7 : 1 }}>
-                {uploading ? "Uploading..." : "Upload"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ ...card }}>
         {/* Header row */}
         <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
           <div style={{ fontWeight: 700, fontSize: "1rem", color: "#32325d", flex: 1 }}>All Projects</div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <button
-              onClick={() => setUploadModal(true)}
-              style={{ background: "#5e72e4", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
-            >
-              <span style={{ fontSize: "1rem", lineHeight: 1 }}>+</span> Upload Students
-            </button>
             <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", background: "#fff" }}>
               <span style={{ padding: "0 12px", color: "#8898aa" }}><i className="fas fa-search" /></span>
               <input

@@ -77,6 +77,59 @@ const ProjectCard = ({ p }) => (
   </Link>
 );
 
+const SparkBar = ({ vals, years, max, W, H, gap, barW, rx, color }) => {
+  const [hovered, setHovered] = useState(null);
+  return (
+    <div style={{ marginTop: "0.85rem" }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H + 20}`} style={{ overflow: "visible" }}>
+        <defs>
+          <linearGradient id={`grad-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.35" />
+          </linearGradient>
+        </defs>
+        {vals.map((v, i) => {
+          const bh = Math.max((v / max) * H, 6);
+          const x = i * (barW + gap);
+          const y = H - bh;
+          const isHov = hovered === i;
+          return (
+            <g key={i}>
+              <rect
+                x={x} y={y} width={barW} height={bh} rx={rx}
+                fill={`url(#grad-${color.replace("#","")})`}
+                opacity={isHov ? 1 : 0.75}
+                style={{ cursor: "pointer", transition: "opacity 0.15s" }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              />
+              {isHov && (
+                <g>
+                  <rect
+                    x={x + barW / 2 - 22} y={y - 28}
+                    width={44} height={22} rx={5}
+                    fill="#1a2035"
+                  />
+                  <text
+                    x={x + barW / 2} y={y - 13}
+                    textAnchor="middle" fill="#fff"
+                    fontSize="11" fontWeight="700"
+                  >{v}</text>
+                </g>
+              )}
+              <text
+                x={x + barW / 2} y={H + 14}
+                textAnchor="middle" fill="#8898aa"
+                fontSize="9.5" fontWeight="500"
+              >{years[i]}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
 const Index = () => {
   const dispatch = useDispatch();
   const projects = useSelector((state) => state.project.projects);
@@ -147,9 +200,10 @@ const Index = () => {
 
   const prevYearStats = trends.length >= 2 ? trends[trends.length - 2] : null;
   const change = (current, dataKey) => {
-    if (!prevYearStats || !prevYearStats[dataKey]) return null;
-    const diff = current - prevYearStats[dataKey];
-    const pct = Math.round((diff / prevYearStats[dataKey]) * 100);
+    if (!prevYearStats || prevYearStats[dataKey] == null) return null;
+    const prev = prevYearStats[dataKey];
+    const diff = current - prev;
+    const pct = prev === 0 ? (diff > 0 ? 100 : 0) : Math.round((diff / prev) * 100);
     return { diff, pct };
   };
 
@@ -160,50 +214,33 @@ const Index = () => {
           {statCards.map(({ label, value, icon, color, dataKey }) => {
             const delta = change(value, dataKey);
             return (
-              <div key={label} style={{ background: "#fff", borderRadius: "12px", padding: "1.25rem 1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-                {/* Top row */}
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1rem" }}>
-                  <div>
-                    <div style={{ fontSize: "0.72rem", color: "#8898aa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
-                    <div style={{ fontSize: "2rem", fontWeight: 700, color: "#32325d", lineHeight: 1.2, marginTop: "4px" }}>{value}</div>
-                    {delta && (
-                      <div style={{ marginTop: "4px", fontSize: "0.78rem", fontWeight: 600, color: delta.diff >= 0 ? "#2dce89" : "#f5365c" }}>
-                        {delta.diff >= 0 ? "▲" : "▼"} {Math.abs(delta.pct)}% vs last year
-                      </div>
-                    )}
+              <div key={label} style={{ background: "#fff", borderRadius: "12px", padding: "1.25rem 1.5rem", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", display: "flex", alignItems: "center", gap: "1rem" }}>
+                {/* Left: icon + label + count */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <i className={icon} style={{ color, fontSize: "1.1rem" }} />
                   </div>
-                  <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <i className={icon} style={{ color, fontSize: "1.2rem" }} />
+                  <div>
+                    <div style={{ fontSize: "0.7rem", color: "#8898aa", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+                    <div style={{ fontSize: "1.9rem", fontWeight: 700, color: "#32325d", lineHeight: 1.2, marginTop: "2px" }}>{value}</div>
                   </div>
                 </div>
-                {/* Sparkline */}
-                {last4.length > 0 && (() => {
-                  const vals = last4.map((t) => t[dataKey] || 0);
-                  const max = Math.max(...vals, 1);
-                  const W = 260, H = 56, gap = 6;
-                  const barW = (W - gap * (vals.length - 1)) / vals.length;
-                  return (
-                    <div style={{ marginTop: "0.75rem" }}>
-                      <svg width="100%" viewBox={`0 0 ${W} ${H}`}>
-                        {vals.map((v, i) => {
-                          const bh = Math.max((v / max) * H, 4);
-                          const x = i * (barW + gap);
-                          const y = H - bh;
-                          return (
-                            <rect key={i} x={x} y={y} width={barW} height={bh} rx="3" fill={color} fillOpacity="0.85">
-                              <title>{`${last4[i].year}: ${v}`}</title>
-                            </rect>
-                          );
-                        })}
-                      </svg>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
-                        {last4.map((t) => (
-                          <span key={t.year} style={{ fontSize: "0.65rem", color: "#8898aa" }}>{t.year}</span>
-                        ))}
-                      </div>
+                {/* Right: bar chart + delta below */}
+                <div style={{ flex: "0 0 50%", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                  {last4.length > 0 && (() => {
+                    const vals = last4.map((t) => t[dataKey] || 0);
+                    const max = Math.max(...vals, 1);
+                    const W = 200, H = 64, gap = 8, rx = 5;
+                    const barW = (W - gap * (vals.length - 1)) / vals.length;
+                    return <SparkBar vals={vals} years={last4.map(t => t.year)} max={max} W={W} H={H} gap={gap} barW={barW} rx={rx} color={color} />;
+                  })()}
+                  {delta && (
+                    <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#8898aa", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <span style={{ color: delta.diff >= 0 ? "#2dce89" : "#f5365c" }}>{delta.diff >= 0 ? "▲" : "▼"}</span>
+                      {Math.abs(delta.pct)}% vs last year
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
               </div>
             );
           })}

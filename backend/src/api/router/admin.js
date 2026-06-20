@@ -3,6 +3,7 @@ import {
   assignEvaluator,
   createEvaluator,
   getAllEvaluators,
+  getAllStudents,
   getUserDetails,
   userCreate,
   getDashboardStats,
@@ -39,6 +40,7 @@ router.get("/project/:id", getOneProject);
 router.get("/admin/evaluated-groups")
 router.get("/user-details/:id", getUserDetails);
 router.get("/all-evaluators", getAllEvaluators);
+router.get("/all-students", getAllStudents);
 router.get("/dashboard-stats", getDashboardStats);
 router.get("/yearly-trends", getYearlyTrends);
 router.post("/new-evaluator", createEvaluator);
