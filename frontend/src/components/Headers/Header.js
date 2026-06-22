@@ -120,7 +120,7 @@ const Header = () => {
     toast.promise(
       axios.post(`${serverUrl}admin/user-register`, fd, { headers: { acaYear: acYear } })
         .then(() => window.location.reload()),
-      { pending: "Creating Evaluation Year...", success: "Done!", error: "Failed" }
+      {  success: "Done!", error: "Failed" }
     );
   };
 

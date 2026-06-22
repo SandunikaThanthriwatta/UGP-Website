@@ -132,7 +132,7 @@ const Final = (props) => {
           console.error("Error uploading file:", error);
         }),
       {
-        pending: "Submiting Marks",
+   
         success: "submited",
         error: "Submition Failed",
       }
