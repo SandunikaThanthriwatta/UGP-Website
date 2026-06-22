@@ -1,0 +1,14 @@
+section,criteria,sub_criteria,marks_resaved,marks
+proposal,Problem Definition,Individual,10,0
+proposal,Literature Review,Group,15,0
+proposal,Methodology,Group,20,0
+proposal,Feasibility Analysis,Group,10,0
+proposal,Presentation Quality,Individual,5,0
+progress,Implementation Progress,Individual,20,0
+progress,Technical Approach,Group,15,0
+progress,Testing & Validation,Group,15,0
+progress,Progress Presentation,Individual,10,0
+final,Final Implementation,Individual,25,0
+final,Documentation,Group,20,0
+final,Final Presentation,Individual,20,0
+final,System Demonstration,Group,15,0
