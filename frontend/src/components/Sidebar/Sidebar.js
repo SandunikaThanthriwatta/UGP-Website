@@ -86,7 +86,7 @@ const styles = {
 const Sidebar = (props) => {
   const user = useSelector((state) => state.user.userData);
   const location = useLocation();
-  const { routes, logo } = props;
+  const { routes } = props;
 
   const isActive = (routePath, layout) =>
     location.pathname === layout + routePath;
@@ -132,16 +132,19 @@ const Sidebar = (props) => {
     <div style={styles.sidebar}>
       {/* Logo */}
       <div style={styles.logoArea}>
-        {logo && (
-          <img
-            src={logo.imgSrc}
-            alt={logo.imgAlt}
-            style={styles.logoImg}
-          />
-        )}
+        <svg width="40" height="40" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+          <rect width="44" height="44" rx="8" fill="rgba(255,255,255,0.1)" />
+          <rect x="8"  y="20" width="4" height="16" rx="1" fill="#fff" />
+          <rect x="14" y="16" width="4" height="20" rx="1" fill="#fff" />
+          <rect x="20" y="13" width="4" height="23" rx="1" fill="#fff" />
+          <rect x="26" y="16" width="4" height="20" rx="1" fill="#fff" />
+          <rect x="32" y="20" width="4" height="16" rx="1" fill="#fff" />
+          <rect x="6"  y="36" width="32" height="2.5" rx="1.25" fill="#fff" opacity="0.85" />
+          <path d="M8 20 Q22 6 36 20" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </svg>
         <div>
-          <div style={styles.logoText}>UGP Portal</div>
-          <div style={styles.logoSub}>University of Ruhuna</div>
+          <div style={{ ...styles.logoText, letterSpacing: "2px", textTransform: "uppercase" }}>Crestwood</div>
+          <div style={styles.logoSub}>University · Project Portal</div>
         </div>
       </div>
 
@@ -154,7 +157,7 @@ const Sidebar = (props) => {
       {/* Footer */}
       <div style={{ padding: "1rem 1.25rem", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ color: TEXT_MUTED, fontSize: "0.72rem", textAlign: "center" }}>
-          FYP Management System © 2026
+          Project Management System © 2026
         </div>
       </div>
     </div>

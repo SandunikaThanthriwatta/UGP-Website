@@ -1,6 +1,5 @@
 import React from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
-
 import routes from "routes.js";
 
 const Auth = () => {
@@ -13,79 +12,44 @@ const Auth = () => {
     mainContent.current.scrollTop = 0;
   }, [location]);
 
-  const getRoutes = (routes) => {
-    return routes.map((prop, key) => {
-      if (prop.layout === "/auth") {
-        return (
-          <Route path={prop.path} element={prop.component} key={key} exact />
-        );
-      } else {
-        return null;
-      }
-    });
-  };
+  const getRoutes = (routes) =>
+    routes.map((prop, key) =>
+      prop.layout === "/auth"
+        ? <Route path={prop.path} element={prop.component} key={key} exact />
+        : null
+    );
 
   return (
-    <div ref={mainContent} style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Left side — image with gradient overlay */}
-      <div style={{ flex: 1, position: "relative" }}>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url('/electrical 3.jpg')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(to right, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 70%, rgba(248,249,250,0.15) 100%)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "rgba(0,0,0,0.25)",
-              backdropFilter: "blur(4px)",
-              borderRadius: "12px",
-              padding: "2rem 2.5rem",
-              textAlign: "center",
-            }}
-          >
-            <h1 style={{ color: "#fff", fontWeight: 700, fontSize: "2rem", marginBottom: "0.5rem", letterSpacing: "0.5px" }}>
-              Undergraduate FYP Portal
-            </h1>
-            <p style={{ color: "rgba(255,255,255,0.75)", margin: 0, fontSize: "1rem" }}>
-              Final Year Project Management System
-            </p>
+    <div
+      ref={mainContent}
+      style={{ minHeight: "100vh", position: "relative", display: "flex", alignItems: "center" }}
+    >
+      {/* Background image */}
+      <div style={{ position: "fixed", inset: 0, backgroundImage: `url('/geralt-college-4126481_1920.jpg')`, backgroundSize: "cover", backgroundPosition: "center", zIndex: 0, transform: "scaleX(-1)" }} />
+      {/* Dark overlay */}
+      <div style={{ position: "fixed", inset: 0, background: "rgba(10, 18, 38, 0.48)", zIndex: 1 }} />
+
+      {/* Logo + card — grouped in one column */}
+      <div style={{ position: "relative", zIndex: 2, marginLeft: "7vw", width: "420px", display: "flex", flexDirection: "column", gap: "2rem" }}>
+        {/* University logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="44" height="44" rx="8" fill="rgba(255,255,255,0.12)" />
+            <rect x="8"  y="20" width="4" height="16" rx="1" fill="#fff" />
+            <rect x="14" y="16" width="4" height="20" rx="1" fill="#fff" />
+            <rect x="20" y="13" width="4" height="23" rx="1" fill="#fff" />
+            <rect x="26" y="16" width="4" height="20" rx="1" fill="#fff" />
+            <rect x="32" y="20" width="4" height="16" rx="1" fill="#fff" />
+            <rect x="6"  y="36" width="32" height="2.5" rx="1.25" fill="#fff" opacity="0.85" />
+            <path d="M8 20 Q22 6 36 20" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </svg>
+          <div>
+            <div style={{ color: "#fff", fontWeight: 800, fontSize: "1.3rem", letterSpacing: "3px", textTransform: "uppercase", lineHeight: 1 }}>CRESTWOOD</div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontWeight: 400, fontSize: "0.68rem", letterSpacing: "2.5px", textTransform: "uppercase", marginTop: "3px" }}>UNIVERSITY</div>
           </div>
         </div>
-      </div>
 
-      {/* Right side — login form */}
-      <div
-        style={{
-          width: "480px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#f8f9fa",
-          padding: "2rem",
-        }}
-      >
+        {/* Login card */}
         <Routes>
           {getRoutes(routes)}
           <Route path="*" element={<Navigate to="/auth/login" replace />} />

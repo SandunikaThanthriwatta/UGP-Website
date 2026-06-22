@@ -8,10 +8,9 @@ import Icons from "views/examples/Icons.js";
 import AllProjects from "views/examples/AllProjects";
 import Students from "views/examples/Students";
 import MyProject from "views/examples/MyProject";
-import Final from "views/examples/Final";
-import Progress from "views/examples/Progress";
-import Proposal from "views/examples/Proposal";
-import Progress_1 from "views/examples/Progress";
+import EvaluatorDashboard from "views/examples/EvaluatorDashboard";
+import EvaluateProjects from "views/examples/EvaluateProjects";
+import ProjectView from "views/examples/ProjectView";
 
 var routes = [
   {
@@ -21,6 +20,13 @@ var routes = [
     component: <Index />,
     layout: "/admin",
   },
+  {
+    path: "/index",
+    name: "Dashboard",
+    icon: "ni ni-tv-2 text-primary",
+    component: <EvaluatorDashboard />,
+    layout: "/evaluator",
+  },
   // {
   //   path: "/projects",
   //   name: "Projects",
@@ -29,23 +35,10 @@ var routes = [
   //   layout: "/evaluator",
   // },
   {
-    path: "/proposal",
-    name: "Proposals",
-    icon: "ni ni ni-collection text-primary",
-    component: <Proposal />,
-    layout: "/evaluator",
-  },
-    {
-    path: "/progress",
-    name: "Progress",
-    icon: "ni ni ni-collection text-primary",
-    component: <Progress_1 />,
-    layout: "/evaluator",
-  },  {
-    path: "/final",
-    name: "Final",
-    icon: "ni ni ni-collection text-primary",
-    component: <Final />,
+    path: "/evaluate",
+    name: "Evaluate Projects",
+    icon: "ni ni-check-bold text-primary",
+    component: <EvaluateProjects />,
     layout: "/evaluator",
   },
   {
@@ -90,6 +83,14 @@ var routes = [
     name: "Your Project",
     icon: "ni ni-single-copy-04 text-red",
     component: <Project />,
+    layout: "/all",
+  },
+
+  {
+    path: "/project-view/:id",
+    name: "Project Details",
+    icon: "ni ni-single-copy-04 text-primary",
+    component: <ProjectView />,
     layout: "/all",
   },
 

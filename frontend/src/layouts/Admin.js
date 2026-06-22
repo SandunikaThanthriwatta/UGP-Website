@@ -26,7 +26,7 @@ const Admin = (props) => {
     routes.map((prop, key) => {
       if (prop.layout === "/all") {
         return <Route path={prop.path} element={prop.component} key={key} exact />;
-      } else if (prop.layout === "/admin" && prop.path === "/index") {
+      } else if (prop.layout === "/admin" && prop.path === "/index" && user?.userType !== 1) {
         return <Route path={prop.path} element={prop.component} key={key} exact />;
       } else if (user?.userType === 2 && prop.layout === "/admin") {
         return <Route path={prop.path} element={prop.component} key={key} exact />;
