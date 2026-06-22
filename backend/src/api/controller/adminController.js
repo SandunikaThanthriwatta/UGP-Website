@@ -198,20 +198,21 @@ export const assignEvaluator = async (req, res, next) => {
   const { groupId, evaluatorId } = req.body.userData;
 
   try {
-    const existGroup = await Groups.findOne({ groupId: groupId });
+    const existGroup = await Groups.findById(groupId);
     if (!existGroup) throw new Error("Invalid group Id");
 
     const existEvaluator = await Evaluators.findById(evaluatorId);
     if (!existEvaluator) throw new Error("Invalid evaluator Id");
+
+    const alreadyAssigned = existGroup.evaluator.some((id) => id.equals(evaluatorId));
+    if (alreadyAssigned) return res.status(200).send("already assigned");
 
     existGroup.evaluator.push(evaluatorId);
     await existGroup.save();
     return res.status(200).send("evaluator added");
   } catch (err) {
     console.log(err);
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -226,15 +227,23 @@ export const getAllStudents = async (req, res, next) => {
   try {
     const year = req.query.year;
     const query = year ? { evaluationYear: year } : {};
-    const groups = await Groups.find(query, { groupId: 1, projectName: 1, evaluationYear: 1, groupMembers: 1 });
+    const [groups, studentDocs] = await Promise.all([
+      Groups.find(query, { groupId: 1, projectName: 1, evaluationYear: 1, groupMembers: 1 }),
+      Students.find({}, { studentId: 1, studentName: 1 }),
+    ]);
+    const nameMap = {};
+    studentDocs.forEach((s) => { if (s.studentId) nameMap[s.studentId] = s.studentName; });
     const students = groups.flatMap((g) =>
-      (g.groupMembers || []).map((m) => ({
-        studentId: m.studentId || m.regNo,
-        studentName: m.name,
-        groupId: g.groupId,
-        projectName: g.projectName,
-        evaluationYear: g.evaluationYear,
-      }))
+      (g.groupMembers || []).map((m) => {
+        const id = m.studentId || m.regNo;
+        return {
+          studentId: id,
+          studentName: m.name || nameMap[id] || "",
+          groupId: g.groupId,
+          projectName: g.projectName,
+          evaluationYear: g.evaluationYear,
+        };
+      })
     );
     res.status(200).json({ students });
   } catch (err) {
