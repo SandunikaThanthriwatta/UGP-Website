@@ -72,7 +72,7 @@ export const updateProject = (userInput) => {
         `${serverUrl}student/project-update/${userInput.id}`,
         {
           projectDescription: userInput.text,
-          projectImages: userInput.projectImages[0],
+          projectImages: Array.isArray(userInput.projectImages) ? userInput.projectImages : [],
         }
       );
       console.log(response);

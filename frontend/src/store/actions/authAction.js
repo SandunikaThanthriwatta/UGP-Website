@@ -33,16 +33,6 @@ export const userLogin = (userInput) => {
 
       dispatch(authSlice.actions.login(userResponse));
       dispatch(userSlice.actions.getUserData(userResponse));
-    //   dispatch(
-    //     userSlice.actions.updateUserType(userResponse.userData.userType)
-    //   );
-      dispatch(
-        notificationSlice.actions.showNotification({
-          status: "success",
-          title: "Success!",
-          message: "User Logged Successfuly!",
-        })
-      );
     } catch (err) {
       console.log(err);
         dispatch(

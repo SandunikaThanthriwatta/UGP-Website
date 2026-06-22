@@ -69,51 +69,10 @@ export const createEvaluator = (userData) => {
 
 export const assignEvaluator = (userData) => {
   return async (dispatch) => {
-    dispatch(
-      notificationSlice.actions.showNotification({
-        status: "pending",
-        title: "Sending...",
-        message: "Sending userData",
-      })
-    );
-    const sendRequest = async () => {
-      const response = await axios.post(
-        `${serverUrl}admin/assign-evaluator`,
-        {
-          userData,
-        }
-      );
-      console.log(response);
-      if (response.status != 200) {
-        throw new Error("User Login failed");
-      }
-      console.log(response.data);
-      return response.data;
-    };
     try {
-      const userResponse = await sendRequest();
-
-      dispatch(evaluatorSlice.actions.getAllEvaluators(userResponse));
-        // dispatch(userSlice.actions.userDetails(userResponse.userData));
-        // dispatch(
-        //   userSlice.actions.updateUserType(userResponse.userData.userType)
-        // );
-      dispatch(
-        notificationSlice.actions.showNotification({
-          status: "success",
-          title: "Success!",
-          message: "New Evaluator Assigned",
-        })
-      );
+      await axios.post(`${serverUrl}admin/assign-evaluator`, { userData });
     } catch (err) {
       console.log(err);
-      dispatch(
-        notificationSlice.actions.showNotification({
-          status: "error",
-          title: "Error...",
-          message: "New Evaluator creatrion failed",
-        })
-      );
     }
   };
 };
