@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
     editProject,
+  removeProjectImage,
   getOneProject,
   getPorjectsByAdmin,
   getProjectByStudent,
@@ -15,7 +16,8 @@ const router = Router();
 
 router.get("/project/:id", getOneProject);
 router.get("/my-project/:id", getProjectByStudent);
-router.put("/project-update/:id", editProject );
+router.put("/project-update/:id", editProject);
+router.put("/remove-image/:id", removeProjectImage);
 router.post('/individual-marks', studentEvaluate)
 router.post('/group-marks', groupEvaluate)
 router.get('/evaluator-projects/:id',getPorjectsByEvaluator)

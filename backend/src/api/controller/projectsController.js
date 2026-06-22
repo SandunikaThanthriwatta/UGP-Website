@@ -32,25 +32,49 @@ export const getPorjectsByAdmin = async (req, res, next) => {
 export const getPorjectsByEvaluator = async (req, res, next) => {
   const id = req.params.id;
   const year = req.header("acadamicYear");
+  console.log("[evaluator-projects] userId param:", id, "| year:", year);
   try {
-    const evaluator = await Evaluators.findOne({ userId: id });
-    if (!evaluator) throw new Error("Invalid user Id");
+    const loginUser = await Users.findById(id);
+    const evaluator = await Evaluators.findOne({
+      $or: [
+        { userId: id },
+        ...(loginUser?.userId ? [{ evaluatorId: loginUser.userId }] : []),
+      ],
+    });
+    console.log("[evaluator-projects] evaluator found:", evaluator?._id ?? "NOT FOUND");
+    if (!evaluator) {
+      console.log("[evaluator-projects] no evaluator record for user", id);
+      return res.status(200).send({ projects: [] });
+    }
 
-    const projects = await Groups.find({
-      evaluator: evaluator._id,
-      evaluationYear: year,
-    }).populate("evaluator");
-    console.log(projects, id);
+    const query = year
+      ? { evaluator: evaluator._id, evaluationYear: year }
+      : { evaluator: evaluator._id };
+
+    const [projects, studentDocs] = await Promise.all([
+      Groups.find(query).populate("evaluator"),
+      Students.find({}, { studentId: 1, studentName: 1 }),
+    ]);
 
     if (!projects) throw new Error("NO Projects found");
 
-    res.status(200).send({
-      projects: projects,
+    const nameMap = {};
+    studentDocs.forEach((s) => { if (s.studentId) nameMap[s.studentId] = s.studentName; });
+
+    const enriched = projects.map((p) => {
+      const obj = p.toObject();
+      obj.groupMembers = (obj.groupMembers || []).map((m) => ({
+        ...m,
+        name: m.name || nameMap[m.studentId] || "",
+      }));
+      return obj;
     });
+
+    console.log("[evaluator-projects] projects found:", enriched.length);
+    res.status(200).send({ projects: enriched });
   } catch (err) {
-    res.status(500).json({
-      message: err.message,
-    });
+    console.log("[evaluator-projects] ERROR:", err.message);
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -59,76 +83,87 @@ export const getOneProject = async (req, res, next) => {
 
   try {
     if (id === ":id") throw new Error("invalid ID");
-    const project = await Groups.findById(id);
+    const [project, studentDocs] = await Promise.all([
+      Groups.findById(id).populate("evaluator"),
+      Students.find({}, { studentId: 1, studentName: 1 }),
+    ]);
     if (!project) throw new Error("Invalid Project Id");
 
-    return res.status(200).json({
-      project: project,
-    });
+    const nameMap = {};
+    studentDocs.forEach((s) => { if (s.studentId) nameMap[s.studentId] = s.studentName; });
+
+    const obj = project.toObject();
+    obj.groupMembers = (obj.groupMembers || []).map((m) => ({
+      ...m,
+      name: m.name || nameMap[m.studentId] || "",
+    }));
+
+    return res.status(200).json({ project: obj });
   } catch (err) {
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };
 
 export const getProjectByStudent = async (req, res, next) => {
   const id = req.params.id;
-  console.log(id);
-  const user = await Users.findById(id);
-
   try {
+    const user = await Users.findById(id);
     if (!user) throw new Error("invalid user Id");
-    const student = await Students.findOne({ studentId: user.userId });
-    console.log(student);
 
-    if (!student) throw new Error("No STUDENT Under this reg no");
-    const project = await Groups.findOne({ groupId: student.groupId });
+    const project = await Groups.findOne({ "groupMembers.studentId": user.userId });
     if (!project) throw new Error("No Project Under this reg no");
 
-    return res.status(200).json({
-      project: project,
-    });
+    return res.status(200).json({ project });
   } catch (err) {
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const removeProjectImage = async (req, res, next) => {
+  const { id } = req.params;
+  const { imageUrl } = req.body;
+  try {
+    const updated = await Groups.findByIdAndUpdate(
+      id,
+      { $pull: { projectImages: imageUrl } },
+      { new: true }
+    );
+    return res.status(200).json({ project: updated });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 
 export const editProject = async (req, res, next) => {
   const id = req.params.id;
-  const projectData = req.body;
-  const student = await Students.findOne({ studentId: projectData.studentId });
-  const project = await Groups.findById(id);
+  const { projectDescription, projectImages } = req.body;
 
-  let submitData = { projectDescription: null, projectImages: null };
   try {
-    if (projectData.projectDescription === "<p><br></p>") {
-      submitData.projectDescription = project.projectDescription;
-    }
-    if (projectData.projectImages === "h") {
-      submitData.projectDescription = projectData.projectDescription;
-      submitData.projectImages = project.projectImages;
-    } else {
-      submitData = projectData;
+    const project = await Groups.findById(id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    const updateFields = {};
+
+    if (projectDescription && projectDescription !== "<p><br></p>") {
+      updateFields.projectDescription = projectDescription;
     }
 
-    const projectSub = await Groups.findByIdAndUpdate(
+    const newImages = Array.isArray(projectImages) ? projectImages.filter(Boolean) : [];
+    if (newImages.length > 0) {
+      const existing = Array.isArray(project.projectImages) ? project.projectImages : [];
+      updateFields.projectImages = [...existing, ...newImages];
+    }
+
+    const updated = await Groups.findByIdAndUpdate(
       id,
-      { $set: submitData },
+      { $set: updateFields },
       { new: true }
-    );
-    await projectSub.save();
+    ).populate("evaluator");
 
-    return res.status(200).json({
-      project: project,
-    });
+    return res.status(200).json({ project: updated });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -235,218 +270,117 @@ export const groupEvaluate = async (req, res, next) => {
 export const studentEvaluate = async (req, res, next) => {
   const { id, studentMarks, criteria, groupId } = req.body.userData;
   try {
-    const updatedProject = await Groups.findOneAndUpdate(
-      { "groupMembers.studentId": id },
-      { $set: { "groupMembers.$.studentMarks": studentMarks } },
-      { new: true }
-    );
-    const user = await Groups.findOne({ "groupMembers.studentId": id });
-    // await updatedProject.save();
-    const student = user.groupMembers.findIndex((p) => p.studentId === id);
-    const onsStudent = user.groupMembers[student];
-    if (onsStudent.evaluationAreas !== 0) {
-      const criIndex = onsStudent.evaluationAreas.findIndex(
-        (q) => q.criteria === criteria
+    const group = await Groups.findOne({ "groupMembers.studentId": id });
+    if (!group) throw new Error("Group not found for student " + id);
+
+    const member = group.groupMembers.find((m) => m.studentId === id);
+    const criIndex = (member?.evaluationAreas || []).findIndex((a) => a.criteria === criteria);
+
+    if (criIndex === -1) {
+      await Groups.findOneAndUpdate(
+        { "groupMembers.studentId": id },
+        { $push: { "groupMembers.$[m].evaluationAreas": { criteria, studentMarks } } },
+        { arrayFilters: [{ "m.studentId": id }] }
       );
-      console.log(criIndex, studentMarks);
-      if (criIndex == -1) {
-        user.groupMembers.studentFinalMarks += studentMarks;
-        onsStudent.evaluationAreas.push({
-          criteria: criteria,
-          studentMarks: studentMarks,
-        });
-      } else {
-        user.groupMembers.studentFinalMarks -=
-          onsStudent.evaluationAreas[criIndex].studentMarks;
-        onsStudent.evaluationAreas[criIndex].studentMarks = studentMarks;
-        user.groupMembers.studentFinalMarks += studentMarks;
-      }
+    } else {
+      await Groups.findOneAndUpdate(
+        { "groupMembers.studentId": id },
+        { $set: { [`groupMembers.$[m].evaluationAreas.${criIndex}.studentMarks`]: studentMarks } },
+        { arrayFilters: [{ "m.studentId": id }] }
+      );
     }
 
-    await user.save();
     return res.status(200).json({});
   } catch (err) {
     console.log(err);
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };
 
 export const finalizeEvaluations = async (req, res, next) => {
   const academicYear = req.body.searchYear;
 
+  const isIndividual = (item) =>
+    item.criteria?.toLowerCase().includes("individual") ||
+    (item.sub_criteria && item.sub_criteria.toLowerCase().includes("individual"));
+
   try {
     const allGroups = await Groups.find({ evaluationYear: academicYear });
-    if (!allGroups) throw new Error("invalid Evaluation Year");
-    const proposal = allGroups[0].projectEvaluationScore.proposal.length;
-    const progress = allGroups[0].projectEvaluationScore.progress.length;
-    const final = allGroups[0].projectEvaluationScore.final.length;
-    let proposalMarks = 0;
-    let progressMarks = 0;
-    let final_Marks = 0;
+    if (!allGroups || allGroups.length === 0) throw new Error("No groups found for this year");
 
-    let proposalTotal = 0;
-    let progressTotal = 0;
-    let finalTotal = 0;
+    for (const group of allGroups) {
+      const allCriteria = [
+        ...group.projectEvaluationScore.proposal,
+        ...group.projectEvaluationScore.progress,
+        ...group.projectEvaluationScore.final,
+      ];
 
-    for (let i = 0; i < proposal; i++) {
-      proposalTotal += parseInt(
-        allGroups[0].projectEvaluationScore.proposal[i].marks_resaved
-      );
-    }
-    for (let i = 0; i < progress; i++) {
-      progressTotal += parseInt(
-        allGroups[0].projectEvaluationScore.progress[i].marks_resaved
-      );
-    }
-    for (let i = 0; i < final; i++) {
-      finalTotal += parseInt(
-        allGroups[0].projectEvaluationScore.final[i].marks_resaved
-      );
-    }
-
-    for (let j = 0; j < allGroups.length; j++) {
-      let id = allGroups[j]._id;
-
-      for (let i = 0; i < proposal; i++) {
-        const containsIndividual =
-          allGroups[j].projectEvaluationScore.proposal[i].criteria
-            .toLowerCase()
-            .includes("individual") ||
-          (allGroups[j].projectEvaluationScore.proposal[i].sub_criteria &&
-            allGroups[j].projectEvaluationScore.proposal[i].sub_criteria
-              .toLowerCase()
-              .includes("individual"));
-
-        if (
-          allGroups[j].projectEvaluationScore.proposal[i].marks === "0" &&
-          containsIndividual
-        ) {
-          throw new Error("evaluations are not completed");
+      // Validate group-level criteria are filled
+      for (const item of allCriteria) {
+        if (!isIndividual(item) && (!item.marks || item.marks === "0")) {
+          throw new Error(`Group marks not completed: "${item.criteria}" in group ${group.groupId}`);
         }
-        proposalMarks += parseFloat(
-          allGroups[j].projectEvaluationScore.proposal[i].marks
-        );
-        console.log(proposalMarks);
       }
-      for (let i = 0; i < progress; i++) {
-        const containsIndividual =
-          allGroups[j].projectEvaluationScore.progress[i].criteria
-            .toLowerCase()
-            .includes("individual") ||
-          (allGroups[j].projectEvaluationScore.progress[i].sub_criteria &&
-            allGroups[j].projectEvaluationScore.progress[i].sub_criteria
-              .toLowerCase()
-              .includes("individual"));
 
-        if (
-          allGroups[j].projectEvaluationScore.progress[i].marks === "0" &&
-          containsIndividual
-        ) {
-          throw new Error("evaluations are not completed");
+      // Validate each student has marks for every individual criterion
+      const individualCriteria = allCriteria.filter(isIndividual);
+      for (const member of group.groupMembers) {
+        for (const criterion of individualCriteria) {
+          const found = (member.evaluationAreas || []).find((a) => a.criteria === criterion.criteria);
+          if (!found) {
+            throw new Error(`Individual marks missing for ${member.studentId}: "${criterion.criteria}" in group ${group.groupId}`);
+          }
         }
-        progressMarks += parseFloat(
-          allGroups[j].projectEvaluationScore.progress[i].marks
-        );
       }
-      for (let i = 0; i < final; i++) {
-        const containsIndividual =
-          allGroups[j].projectEvaluationScore.final[i].criteria
-            .toLowerCase()
-            .includes("individual") ||
-          (allGroups[j].projectEvaluationScore.final[i].sub_criteria &&
-            allGroups[j].projectEvaluationScore.final[i].sub_criteria
-              .toLowerCase()
-              .includes("individual"));
 
-        if (
-          allGroups[j].projectEvaluationScore.final[i].marks === "0" &&
-          containsIndividual
-        ) {
-          throw new Error("evaluations are not completed");
-        }
-        final_Marks += parseFloat(
-          allGroups[j].projectEvaluationScore.final[i].marks
-        );
-      }
-      const finalMarks = {
-        proposal: proposalMarks.toString(),
-        progress: progressMarks.toString(),
-        final: final_Marks.toString(),
-      };
+      // Sum of all group-level criteria marks (same for every student in the group)
+      const groupTotal = allCriteria
+        .filter((item) => !isIndividual(item))
+        .reduce((sum, item) => sum + parseFloat(item.marks || 0), 0);
 
-      const update = await Groups.findByIdAndUpdate(
-        { _id: id },
-        {
-          $set: {
-            finalMarks: finalMarks,
-            evaluationFinalized: true,
-          },
-        }
+      // Per-student total = shared group total + their own individual marks
+      const updatedMembers = group.groupMembers.map((member) => {
+        const obj = member.toObject();
+        const individualTotal = (member.evaluationAreas || [])
+          .reduce((sum, area) => sum + parseFloat(area.studentMarks || 0), 0);
+        obj.studentFinalMarks = groupTotal + individualTotal;
+        return obj;
+      });
+
+      await Groups.findByIdAndUpdate(
+        group._id,
+        { $set: { groupMembers: updatedMembers, evaluationFinalized: true } }
       );
-
-      await update.save();
-      proposalMarks = 0;
-      progressMarks = 0;
-      final_Marks = 0;
     }
 
     return res.status(200).send("ok");
   } catch (err) {
-    console.log(err)
-    return res.status(500).json({
-      message: err.message,
-    });
+    console.log(err);
+    return res.status(500).json({ message: err.message });
   }
 };
 
 export const graphData = async (req, res, next) => {
   const academicYear = req.params.id;
-  const groupIds = [];
-  const proposal_marks = [];
-  const progress_marks = [];
-  const final_Mrks = [];
 
   try {
-    const allGroups = await Groups.find({ evaluationYear: academicYear });
+    const allGroups = await Groups.find({ evaluationYear: academicYear, evaluationFinalized: true });
 
-    const proposal = allGroups[0].projectEvaluationScore.proposal.length;
-    const progress = allGroups[0].projectEvaluationScore.progress.length;
-    const final = allGroups[0].projectEvaluationScore.final.length;
+    const groupIds = [];
+    const studentMarks = [];   // average studentFinalMarks per group
 
-    let proposalMarks = 0;
-    let progressMarks = 0;
-    let final_Marks = 0;
-
-    for (let j = 0; j < allGroups.length; j++) {
-      groupIds.push(allGroups[j].groupId);
-
-      let id = allGroups[j]._id;
-      for (let i = 0; i < proposal; i++) {
-        proposal_marks.push(parseFloat(allGroups[j].finalMarks.proposal));
-        proposalMarks += parseFloat(allGroups[j].finalMarks.proposal);
-      }
-      for (let i = 0; i < progress; i++) {
-        progress_marks.push(parseFloat(allGroups[j].finalMarks.progress));
-        progressMarks += parseFloat(allGroups[j].finalMarks.progress);
-      }
-      for (let i = 0; i < final; i++) {
-        final_Mrks.push(parseFloat(allGroups[j].finalMarks.final));
-        final_Marks += parseFloat(allGroups[j].finalMarks.final);
-      }
+    for (const group of allGroups) {
+      groupIds.push(group.groupId);
+      const members = group.groupMembers || [];
+      const avg = members.length > 0
+        ? members.reduce((sum, m) => sum + (parseFloat(m.studentFinalMarks) || 0), 0) / members.length
+        : 0;
+      studentMarks.push(parseFloat(avg.toFixed(2)));
     }
 
-    return res.status(200).json({
-      proposal_marks,
-      progress_marks,
-      final_Mrks,
-      groupIds,
-    });
+    return res.status(200).json({ groupIds, studentMarks });
   } catch (err) {
     console.log(err);
-    return res.status(500).json({
-      message: err.message,
-    });
+    return res.status(500).json({ message: err.message });
   }
 };

@@ -10,6 +10,7 @@ const schema = new mongoose.Schema({
   groupMembers: [
     {
       studentId: String,
+      name: String,
       studentFinalMarks: {
         type: Number,
         default: 0,
@@ -28,7 +29,7 @@ const schema = new mongoose.Schema({
   },
   projectName: String,
   projectDescription: String,
-  projectImages: String,
+  projectImages: [String],
   evaluator: [
     {
       type: mongoose.Schema.Types.ObjectId,
