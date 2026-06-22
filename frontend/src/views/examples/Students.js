@@ -7,8 +7,18 @@ const card = {
   background: "#fff",
   borderRadius: "12px",
   boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-  overflow: "hidden",
 };
+
+const btnStyle = (disabled) => ({
+  padding: "4px 10px",
+  borderRadius: "6px",
+  border: "1px solid #e2e8f0",
+  background: disabled ? "#f8f9fa" : "#fff",
+  color: disabled ? "#c0c0c0" : "#525f7f",
+  cursor: disabled ? "default" : "pointer",
+  fontWeight: 700,
+  fontSize: "0.9rem",
+});
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -17,6 +27,8 @@ const Students = () => {
   const [uploadModal, setUploadModal] = useState(false);
   const [uploadYear, setUploadYear] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const file1Ref = useRef(null);
   const file2Ref = useRef(null);
 
@@ -26,9 +38,8 @@ const Students = () => {
       .catch(console.error);
   };
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  useEffect(() => { fetchStudents(); }, []);
+  useEffect(() => { setPage(1); }, [search, yearFilter]);
 
   const years = [...new Set(students.map((s) => s.evaluationYear).filter(Boolean))].sort().reverse();
 
@@ -42,6 +53,10 @@ const Students = () => {
     const matchesYear = !yearFilter || s.evaluationYear === yearFilter;
     return matchesSearch && matchesYear;
   });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const handleUpload = async () => {
     if (!uploadYear || !file1Ref.current?.files[0] || !file2Ref.current?.files[0]) {
@@ -70,7 +85,8 @@ const Students = () => {
   };
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
       {/* Upload Modal */}
       {uploadModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 1050, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -100,9 +116,7 @@ const Students = () => {
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "1.5rem" }}>
-              <button onClick={() => setUploadModal(false)} style={{ background: "#f4f6f9", color: "#525f7f", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}>
-                Cancel
-              </button>
+              <button onClick={() => setUploadModal(false)} style={{ background: "#f4f6f9", color: "#525f7f", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}>Cancel</button>
               <button onClick={handleUpload} disabled={uploading} style={{ background: "#5e72e4", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 20px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer", opacity: uploading ? 0.7 : 1 }}>
                 {uploading ? "Uploading..." : "Upload"}
               </button>
@@ -111,68 +125,66 @@ const Students = () => {
         </div>
       )}
 
-      <div style={{ ...card }}>
-        {/* Header */}
-        <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: "1rem", color: "#32325d" }}>All Students</div>
-            <div style={{ fontSize: "0.78rem", color: "#8898aa", marginTop: "2px" }}>{filtered.length} of {students.length} students</div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", background: "#f8f9fa", padding: "0 12px", gap: "8px" }}>
-            <i className="fas fa-search" style={{ color: "#8898aa", fontSize: "0.8rem" }} />
-            <input
-              placeholder="Search by name, ID, project..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ border: "none", outline: "none", background: "transparent", padding: "8px 0", fontSize: "0.875rem", width: "240px", color: "#32325d" }}
-            />
-            {search && (
-              <button onClick={() => setSearch("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8898aa", fontSize: "0.85rem", padding: 0 }}>✕</button>
-            )}
-          </div>
-          <select
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            style={{ minWidth: "150px", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 12px", fontSize: "0.875rem", color: yearFilter ? "#5e72e4" : "#8898aa", outline: "none", background: "#f8f9fa", fontWeight: yearFilter ? 600 : 400, cursor: "pointer" }}
-          >
-            <option value="">All Years</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => setUploadModal(true)}
-            style={{ display: "flex", alignItems: "center", gap: "6px", background: "#5e72e4", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
-          >
-            <span style={{ fontSize: "1rem", lineHeight: 1 }}>+</span> Upload Students
-          </button>
+      {/* Toolbar card */}
+      <div style={{ ...card, padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: "1rem", color: "#32325d" }}>All Students</div>
+          <div style={{ fontSize: "0.78rem", color: "#8898aa", marginTop: "2px" }}>{total} of {students.length} students</div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", border: "1px solid #e2e8f0", borderRadius: "8px", overflow: "hidden", background: "#f8f9fa", padding: "0 12px", gap: "8px" }}>
+          <i className="fas fa-search" style={{ color: "#8898aa", fontSize: "0.8rem" }} />
+          <input
+            placeholder="Search by name, ID, project..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ border: "none", outline: "none", background: "transparent", padding: "8px 0", fontSize: "0.875rem", width: "220px", color: "#32325d" }}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} style={{ border: "none", background: "none", cursor: "pointer", color: "#8898aa", fontSize: "0.85rem", padding: 0 }}>✕</button>
+          )}
+        </div>
+        <select
+          value={yearFilter}
+          onChange={(e) => setYearFilter(e.target.value)}
+          style={{ minWidth: "140px", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 12px", fontSize: "0.875rem", color: yearFilter ? "#11cdef" : "#8898aa", outline: "none", background: "#f8f9fa", fontWeight: yearFilter ? 600 : 400, cursor: "pointer" }}
+        >
+          <option value="">All Years</option>
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <button
+          onClick={() => setUploadModal(true)}
+          style={{ display: "flex", alignItems: "center", gap: "6px", background: "#5e72e4", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
+        >
+          <span style={{ fontSize: "1rem", lineHeight: 1 }}>+</span> Upload Students
+        </button>
+      </div>
 
-        {/* Table */}
-        <div style={{ overflowX: "auto" }}>
+      {/* Table card */}
+      <div style={{ ...card }}>
+        <div style={{ overflowX: "auto", maxHeight: "480px", overflowY: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
             <thead>
-              <tr style={{ background: "#f8f9fa" }}>
+              <tr style={{ background: "#f8f9fa", position: "sticky", top: 0, zIndex: 1 }}>
                 {["Student ID", "Name", "Group", "Project", "Year"].map((h) => (
-                  <th key={h} style={{ padding: "0.75rem 1.25rem", textAlign: "left", fontWeight: 600, color: "#8898aa", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>{h}</th>
+                  <th key={h} style={{ padding: "0.75rem 1.25rem", textAlign: "left", fontWeight: 600, color: "#8898aa", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px", background: "#f8f9fa" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s, i) => (
+              {paginated.map((s, i) => (
                 <tr key={i} style={{ borderTop: "1px solid #f0f0f0", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
                   <td style={{ padding: "0.85rem 1.25rem", fontWeight: 600, color: "#32325d" }}>{s.studentId}</td>
                   <td style={{ padding: "0.85rem 1.25rem", color: "#32325d" }}>{s.studentName}</td>
                   <td style={{ padding: "0.85rem 1.25rem" }}>
-                    <span style={{ background: "#e8eaf6", color: "#3949ab", borderRadius: "6px", padding: "2px 10px", fontSize: "0.78rem", fontWeight: 600 }}>{s.groupId}</span>
+                    <span style={{ background: "rgba(94,114,228,0.1)", color: "#5e72e4", borderRadius: "6px", padding: "2px 10px", fontSize: "0.78rem", fontWeight: 600 }}>{s.groupId}</span>
                   </td>
                   <td style={{ padding: "0.85rem 1.25rem", color: "#525f7f", maxWidth: "260px" }}>{s.projectName}</td>
                   <td style={{ padding: "0.85rem 1.25rem" }}>
-                    <span style={{ background: "#f0f4ff", color: "#5e72e4", borderRadius: "6px", padding: "2px 10px", fontSize: "0.78rem", fontWeight: 600 }}>{s.evaluationYear}</span>
+                    <span style={{ background: "rgba(52,70,117,0.1)", color: "#344675", borderRadius: "6px", padding: "2px 10px", fontSize: "0.78rem", fontWeight: 600 }}>{s.evaluationYear}</span>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {total === 0 && (
                 <tr>
                   <td colSpan={5} style={{ padding: "2.5rem", textAlign: "center", color: "#8898aa" }}>
                     <i className="ni ni-single-02" style={{ fontSize: "2rem", display: "block", marginBottom: "0.75rem", opacity: 0.4 }} />
@@ -183,6 +195,27 @@ const Students = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {total > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.75rem 1.25rem", borderTop: "1px solid #f0f0f0", background: "#fafafa", flexWrap: "wrap", gap: "8px" }}>
+            <span style={{ fontSize: "0.8rem", color: "#8898aa" }}>
+              Showing {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} of {total}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                style={{ border: "1px solid #e2e8f0", borderRadius: "6px", padding: "4px 8px", fontSize: "0.8rem", color: "#525f7f", outline: "none", background: "#fff" }}
+              >
+                {[10, 20, 50].map((n) => <option key={n} value={n}>{n} / page</option>)}
+              </select>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={btnStyle(page === 1)}>‹</button>
+              <span style={{ fontSize: "0.8rem", color: "#525f7f", whiteSpace: "nowrap" }}>Page {page} of {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} style={btnStyle(page >= totalPages)}>›</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

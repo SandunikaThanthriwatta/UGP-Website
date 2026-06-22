@@ -17,7 +17,6 @@ import {
   Col,
   Label,
   Modal,
-  FormText,
   ModalHeader,
   ModalBody,
   ModalFooter,
@@ -116,34 +115,22 @@ const Project = () => {
                           <div className="d-flex">
                             {project && (
                               <>
-                                {project.finalMarks &&
-                                  project.finalMarks.proposal !== "0" && (
-                                    <>
-                                      {" "}
-                                      <Button
-                                        className="bg-red text-white"
-                                        size="lg"
-                                      >
-                                        Final Marks{" "}
-                                        {parseFloat(
-                                          project.finalMarks.proposal
-                                        ) +
-                                          parseFloat(
-                                            project.finalMarks.progress
-                                          ) +
-                                          parseFloat(project.finalMarks.final)}
-                                      </Button>
-                                    </>
-                                  )}
-
-                                {!project.finalMarks && (
+                                {project.evaluationFinalized ? (
                                   <>
-                                    {" "}
-                                    <Button
-                                      color="primary"
-                                      onClick={toggle}
-                                      size="lg"
-                                    >
+                                    {(() => {
+                                      const me = project.groupMembers?.find(
+                                        (m) => m.studentId === user?.userId
+                                      );
+                                      return me ? (
+                                        <Button className="bg-green text-white" size="lg">
+                                          Final Marks: {me.studentFinalMarks}
+                                        </Button>
+                                      ) : null;
+                                    })()}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button color="primary" onClick={toggle} size="lg">
                                       Evaluate Group {project.groupId}
                                     </Button>
                                   </>

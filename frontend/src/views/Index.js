@@ -48,7 +48,7 @@ const ChartCard = ({ title, data, color }) => (
 );
 
 const ProjectCard = ({ p }) => (
-  <Link to={`/all/project/${p._id}`} style={{ textDecoration: "none" }}>
+  <Link to={`/all/project-view/${p._id}`} style={{ textDecoration: "none" }}>
     <div
       style={{ ...card, padding: "1.25rem", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
       onMouseEnter={(e) => {
@@ -66,13 +66,16 @@ const ProjectCard = ({ p }) => (
       <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#32325d", marginBottom: "0.75rem", lineHeight: 1.4 }}>
         {p.projectName}
       </div>
-      {p.projectImages && (
-        <img
-          src={p.projectImages}
-          alt={p.projectName}
-          style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "8px" }}
-        />
-      )}
+      {(() => {
+        const img = Array.isArray(p.projectImages) ? p.projectImages.find(Boolean) : p.projectImages;
+        return img ? (
+          <img src={img} alt={p.projectName} style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "8px" }} />
+        ) : (
+          <div style={{ width: "100%", height: "140px", borderRadius: "8px", background: "linear-gradient(135deg, #5e72e4 0%, #344675 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <i className="ni ni-folder-17" style={{ fontSize: "2.25rem", color: "rgba(255,255,255,0.35)" }} />
+          </div>
+        );
+      })()}
     </div>
   </Link>
 );
@@ -137,9 +140,7 @@ const Index = () => {
   const currentYear = new Date().getFullYear().toString();
   const [searchYear, setSearchYear] = useState(currentYear);
   const [dispChart, setDispChart] = useState(false);
-  const [proposalMarks, setProposalMarks] = useState([]);
-  const [progressMarks, setProgressMarks] = useState([]);
-  const [finalMarks, setFinalMarks] = useState([]);
+  const [studentMarks, setStudentMarks] = useState([]);
   const [groupIds, setGroupIds] = useState([]);
   const [finalized, setFinalized] = useState(false);
   const [stats, setStats] = useState({ studentCount: 0, evaluatorCount: 0, projectCount: 0 });
@@ -153,7 +154,7 @@ const Index = () => {
       axios.post(`${serverUrl}student/finalize-marks`, { searchYear })
         .then((res) => { if (res.status === 200) window.location.reload(); })
         .catch((err) => { toast.error(err.response?.data?.message); }),
-      { pending: "Finalizing...", success: "Finalized!", error: "Failed" }
+      {  success: "Finalized!", error: "Failed" }
     );
   };
 
@@ -162,9 +163,7 @@ const Index = () => {
     axios.get(`${serverUrl}student/chart-marks/${searchYear}`)
       .then((res) => {
         if (res.status === 200) {
-          setProgressMarks(res.data.progress_marks);
-          setProposalMarks(res.data.proposal_marks);
-          setFinalMarks(res.data.final_Mrks);
+          setStudentMarks(res.data.studentMarks);
           setGroupIds(res.data.groupIds);
         }
       })
@@ -194,7 +193,7 @@ const Index = () => {
 
   const statCards = [
     { label: "Total Students", value: stats.studentCount, icon: "ni ni-single-02", color: "#5e72e4", dataKey: "studentCount" },
-    { label: "Total Evaluators", value: stats.evaluatorCount, icon: "ni ni-hat-3", color: "#2dce89", dataKey: "evaluatorCount" },
+    { label: "Total Evaluators", value: stats.evaluatorCount, icon: "ni ni-hat-3", color: "#11cdef", dataKey: "evaluatorCount" },
     { label: "Total Projects", value: stats.projectCount, icon: "ni ni-folder-17", color: "#f5365c", dataKey: "projectCount" },
   ];
 
@@ -283,8 +282,8 @@ const Index = () => {
           <div style={{ display: "flex", gap: "0", borderBottom: "1px solid #f0f0f0" }}>
             {[
               { label: "Academic Year", value: searchYear || "—", icon: "ni ni-calendar-grid-58", color: "#5e72e4" },
-              { label: "Total Projects", value: projects.length, icon: "ni ni-folder-17", color: "#f5365c" },
-              { label: "Status", value: finalized ? "Finalized" : "In Progress", icon: "ni ni-check-bold", color: finalized ? "#2dce89" : "#fb6340" },
+              { label: "Total Projects", value: projects.length, icon: "ni ni-single-copy-04", color: "#5603ad" },
+              { label: "Status", value: finalized ? "Finalized" : "In Progress", icon: "ni ni-check-bold", color: finalized ? "#2dce89" : "#5e72e4" },
             ].map(({ label, value, icon, color }, i, arr) => (
               <div key={label} style={{ flex: 1, padding: "1.25rem 1.5rem", borderRight: i < arr.length - 1 ? "1px solid #f0f0f0" : "none", display: "flex", alignItems: "center", gap: "12px" }}>
                 <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: color + "18", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -315,9 +314,7 @@ const Index = () => {
           {dispChart && projects.length > 0 && (
             <div style={{ padding: "1.25rem 1.5rem" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.25rem" }}>
-                <ChartCard title="Proposal Marks" data={{ labels: groupIds, values: proposalMarks }} color={chartColors.proposal} />
-                <ChartCard title="Progress Marks" data={{ labels: groupIds, values: progressMarks }} color={chartColors.progress} />
-                <ChartCard title="Final Marks" data={{ labels: groupIds, values: finalMarks }} color={chartColors.final} />
+                <ChartCard title="Student Marks (Avg per Group)" data={{ labels: groupIds, values: studentMarks }} color={chartColors.final} />
               </div>
             </div>
           )}
