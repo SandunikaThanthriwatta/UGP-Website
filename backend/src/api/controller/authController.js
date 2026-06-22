@@ -13,11 +13,6 @@ export const userLogin = async (req, res, next) => {
     if (!user) throw new Error("Invalid username Or password");
     if (user.password !== password)
       throw new Error("Invalid username Or password");
-    let userData;
-    if (user.userType === 0) {
-      userData = await Students.findOne({ studentId: userId });
-      if (!userData) throw new Error("Invalid user id");
-    }
 
     // const equal = bycript.compareSync(password, user.password);
     // if (!equal) throw new Error("invalid username or password");
